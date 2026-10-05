@@ -25,6 +25,9 @@ namespace XMatch.Puzzle
         private Camera boardCamera;
         private Sprite tileSprite;
         private Texture2D tileTexture;
+        private SpriteRenderer boardBackdrop;
+        private int currentLevelIndex;
+        private bool showLevelSelect = true;
         private bool inputLocked;
         private bool pointerArmed;
         private Vector2 pointerStartScreen;
@@ -46,7 +49,8 @@ namespace XMatch.Puzzle
 
             EnsureCamera();
             CreateTileSprite();
-            StartNewStage();
+            StartLevel(0);
+            showLevelSelect = true;
         }
 
         private void Update()
@@ -56,7 +60,8 @@ namespace XMatch.Puzzle
                 return;
             }
 
-            if (!inputLocked &&
+            if (!showLevelSelect &&
+                !inputLocked &&
                 session.Status == StageStatus.InProgress)
             {
                 HandlePointerInput();
@@ -85,21 +90,100 @@ namespace XMatch.Puzzle
 
         private void StartNewStage()
         {
+            StartLevel(currentLevelIndex);
+        }
+
+        private void StartLevel(int levelIndex)
+        {
+            levelIndex = Mathf.Clamp(
+                levelIndex,
+                0,
+                PrototypeLevelFactory.LevelCount - 1);
+
             StopAllCoroutines();
             inputLocked = false;
             pointerArmed = false;
             transientBanner = string.Empty;
             bannerUntil = 0f;
             selectedBooster = BoosterKind.None;
+            currentLevelIndex = levelIndex;
 
             ClearVisuals();
 
             session =
-                PrototypeLevelFactory.CreateStage();
+                PrototypeLevelFactory.CreateStage(
+                    currentLevelIndex);
 
             FitCamera();
+            UpdateTheme();
             BuildVisuals();
-            ShowBanner("LEVEL 1", 1.0f);
+            EnsureBoardBackdrop();
+
+            ShowBanner(
+                $"LEVEL {currentLevelIndex + 1}  " +
+                PrototypeLevelFactory.GetTitle(currentLevelIndex),
+                1.25f);
+        }
+
+        private void AdvanceLevel()
+        {
+            if (currentLevelIndex + 1 >=
+                PrototypeLevelFactory.LevelCount)
+            {
+                showLevelSelect = true;
+                return;
+            }
+
+            StartLevel(currentLevelIndex + 1);
+        }
+
+        private void UpdateTheme()
+        {
+            Color accent =
+                ThemeColor(currentLevelIndex);
+
+            boardCamera.backgroundColor =
+                Color.Lerp(
+                    new Color(0.025f, 0.018f, 0.050f),
+                    accent,
+                    0.10f);
+        }
+
+        private void EnsureBoardBackdrop()
+        {
+            if (boardBackdrop == null)
+            {
+                var backdropObject =
+                    new GameObject("Board Backdrop");
+                backdropObject.transform.SetParent(
+                    transform,
+                    worldPositionStays: false);
+                backdropObject.transform.localPosition =
+                    new Vector3(
+                        0f,
+                        BoardVerticalOffset,
+                        0.65f);
+
+                boardBackdrop =
+                    backdropObject.AddComponent<SpriteRenderer>();
+                boardBackdrop.sprite = tileSprite;
+                boardBackdrop.sortingOrder = -10;
+            }
+
+            boardBackdrop.transform.localScale =
+                new Vector3(
+                    session.Board.Width + 0.55f,
+                    session.Board.Height + 0.55f,
+                    1f);
+
+            Color accent =
+                ThemeColor(currentLevelIndex);
+            boardBackdrop.color =
+                new Color(
+                    accent.r * 0.22f,
+                    accent.g * 0.22f,
+                    accent.b * 0.28f,
+                    0.92f);
         }
 
         private void EnsureCamera()
@@ -147,32 +231,90 @@ namespace XMatch.Puzzle
 
         private void CreateTileSprite()
         {
+            const int size = 64;
+            const float radius = 12f;
+
             tileTexture =
                 new Texture2D(
-                    2,
-                    2,
+                    size,
+                    size,
                     TextureFormat.RGBA32,
                     false);
 
-            tileTexture.name = "XMatch_RuntimeTile";
-            tileTexture.SetPixels(
-                new[]
+            tileTexture.name = "XMatch_RuntimeGem";
+            tileTexture.filterMode = FilterMode.Bilinear;
+            tileTexture.wrapMode = TextureWrapMode.Clamp;
+
+            var pixels =
+                new Color[size * size];
+
+            float half = (size - 1) * 0.5f;
+
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
                 {
-                    Color.white,
-                    Color.white,
-                    Color.white,
-                    Color.white
-                });
+                    float dx =
+                        Mathf.Max(
+                            Mathf.Abs(x - half) -
+                            (half - radius),
+                            0f);
+                    float dy =
+                        Mathf.Max(
+                            Mathf.Abs(y - half) -
+                            (half - radius),
+                            0f);
+                    float distance =
+                        Mathf.Sqrt((dx * dx) + (dy * dy));
+
+                    float alpha =
+                        Mathf.Clamp01(
+                            (radius + 0.75f) - distance);
+
+                    float vertical =
+                        Mathf.Lerp(
+                            0.78f,
+                            1.08f,
+                            y / (float)(size - 1));
+
+                    float highlightDx =
+                        (x - (size * 0.32f)) /
+                        (size * 0.33f);
+                    float highlightDy =
+                        (y - (size * 0.72f)) /
+                        (size * 0.24f);
+                    float highlight =
+                        Mathf.Clamp01(
+                            1f -
+                            Mathf.Sqrt(
+                                (highlightDx * highlightDx) +
+                                (highlightDy * highlightDy)));
+
+                    float value =
+                        Mathf.Clamp01(
+                            vertical +
+                            (highlight * 0.24f));
+
+                    pixels[(y * size) + x] =
+                        new Color(
+                            value,
+                            value,
+                            value,
+                            alpha);
+                }
+            }
+
+            tileTexture.SetPixels(pixels);
             tileTexture.Apply();
 
             tileSprite =
                 Sprite.Create(
                     tileTexture,
-                    new Rect(0f, 0f, 2f, 2f),
+                    new Rect(0f, 0f, size, size),
                     new Vector2(0.5f, 0.5f),
-                    2f);
+                    size);
 
-            tileSprite.name = "XMatch_RuntimeTileSprite";
+            tileSprite.name = "XMatch_RuntimeGemSprite";
         }
 
         private void BuildVisuals()
