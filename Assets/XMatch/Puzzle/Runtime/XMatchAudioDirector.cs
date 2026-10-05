@@ -19,7 +19,17 @@ namespace XMatch.Puzzle
         Booster = 10,
         Shuffle = 11,
         Clear = 12,
-        Fail = 13
+        Fail = 13,
+        Heart = 14,
+        Lips = 15,
+        Diamond = 16,
+        Perfume = 17,
+        Rose = 18,
+        ComboCross = 19,
+        ComboBomb = 20,
+        ComboOrb = 21,
+        Gift = 22,
+        Wand = 23
     }
 
     public sealed class XMatchAudioDirector : MonoBehaviour
@@ -117,6 +127,85 @@ namespace XMatch.Puzzle
                 XMatchSoundKind.Match,
                 volume,
                 pitch);
+        }
+
+        public void PlayTile(
+            TileKind kind,
+            int chainNumber)
+        {
+            XMatchSoundKind sound;
+
+            switch (kind)
+            {
+                case TileKind.Heart:
+                    sound = XMatchSoundKind.Heart;
+                    break;
+                case TileKind.Lips:
+                    sound = XMatchSoundKind.Lips;
+                    break;
+                case TileKind.Diamond:
+                    sound = XMatchSoundKind.Diamond;
+                    break;
+                case TileKind.Perfume:
+                    sound = XMatchSoundKind.Perfume;
+                    break;
+                case TileKind.Rose:
+                    sound = XMatchSoundKind.Rose;
+                    break;
+                default:
+                    PlayMatch(chainNumber);
+                    return;
+            }
+
+            float pitch =
+                1f +
+                (Mathf.Clamp(
+                    chainNumber - 1,
+                    0,
+                    6) *
+                 0.035f);
+
+            Play(
+                sound,
+                chainNumber > 1
+                    ? 0.74f
+                    : 0.62f,
+                pitch);
+        }
+
+        public void PlaySpecialCombo(
+            SpecialComboKind combo)
+        {
+            switch (combo)
+            {
+                case SpecialComboKind.CrossBlast:
+                case SpecialComboKind.DoubleRow:
+                case SpecialComboKind.DoubleColumn:
+                case SpecialComboKind.RowBomb:
+                case SpecialComboKind.ColumnBomb:
+                    Play(
+                        XMatchSoundKind.ComboCross,
+                        0.95f);
+                    break;
+
+                case SpecialComboKind.DoubleBomb:
+                case SpecialComboKind.SeekerPair:
+                case SpecialComboKind.SeekerWithSpecial:
+                    Play(
+                        XMatchSoundKind.ComboBomb,
+                        1f);
+                    break;
+
+                case SpecialComboKind.OrbRow:
+                case SpecialComboKind.OrbColumn:
+                case SpecialComboKind.OrbBomb:
+                case SpecialComboKind.OrbSeeker:
+                case SpecialComboKind.DoubleOrb:
+                    Play(
+                        XMatchSoundKind.ComboOrb,
+                        1f);
+                    break;
+            }
         }
 
         private void BuildClips()
@@ -265,6 +354,110 @@ namespace XMatch.Puzzle
                     0.03f,
                     0.48f,
                     14);
+
+            clips[XMatchSoundKind.Heart] =
+                CreateChord(
+                    "Heart",
+                    0.22f,
+                    523.25f,
+                    783.99f,
+                    1046.5f,
+                    0.018f,
+                    0.40f,
+                    21);
+
+            clips[XMatchSoundKind.Lips] =
+                CreateSweep(
+                    "LipsKiss",
+                    0.17f,
+                    280f,
+                    760f,
+                    0.14f,
+                    0.36f,
+                    0.008f,
+                    0.46f,
+                    22);
+
+            clips[XMatchSoundKind.Diamond] =
+                CreateChord(
+                    "Diamond",
+                    0.24f,
+                    1046.5f,
+                    1318.5f,
+                    1568f,
+                    0.018f,
+                    0.42f,
+                    23);
+
+            clips[XMatchSoundKind.Perfume] =
+                CreateSweep(
+                    "PerfumeSpray",
+                    0.28f,
+                    1580f,
+                    620f,
+                    0.25f,
+                    0.06f,
+                    0.025f,
+                    0.34f,
+                    24);
+
+            clips[XMatchSoundKind.Rose] =
+                CreateSweep(
+                    "RosePetal",
+                    0.25f,
+                    420f,
+                    820f,
+                    0.07f,
+                    0.15f,
+                    0.035f,
+                    0.34f,
+                    25);
+
+            clips[XMatchSoundKind.ComboCross] =
+                CreateBlast(
+                    "ComboCross",
+                    0.46f,
+                    300f,
+                    1760f,
+                    0.23f,
+                    26);
+
+            clips[XMatchSoundKind.ComboBomb] =
+                CreateExplosion(
+                    "ComboBomb",
+                    0.62f,
+                    72f,
+                    0.78f,
+                    27);
+
+            clips[XMatchSoundKind.ComboOrb] =
+                CreateColorOrb(
+                    "ComboOrb",
+                    0.96f,
+                    28);
+
+            clips[XMatchSoundKind.Gift] =
+                CreateChord(
+                    "Gift",
+                    0.52f,
+                    659.25f,
+                    987.77f,
+                    1318.5f,
+                    0.025f,
+                    0.52f,
+                    29);
+
+            clips[XMatchSoundKind.Wand] =
+                CreateSweep(
+                    "Wand",
+                    0.48f,
+                    520f,
+                    1960f,
+                    0.05f,
+                    0.18f,
+                    0.025f,
+                    0.48f,
+                    30);
         }
 
         private static AudioClip CreateSweep(
