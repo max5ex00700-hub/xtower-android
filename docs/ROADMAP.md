@@ -44,26 +44,30 @@
 - [x] automatic dead-board shuffle presentation
 - [x] replay button
 
-### Validation still required
+### Validation
 
-- [ ] open with Unity 6000.3.24f1 and complete compile check
-- [ ] run prototype in Unity Play Mode
-- [ ] test touch input on Android device
-- [ ] test portrait scaling on several aspect ratios
-- [ ] profile basic frame time and allocations
+- [x] Unity 6000.3.24f1 cloud compile / Android build
+- [x] Android install and on-device play
+- [x] touch input smoke test
+- [ ] portrait scaling on several aspect ratios
+- [ ] frame-time / allocation profiling
 
-The v0.02 source implementation is present, but the milestone is not considered verified until the Unity/editor/device checks pass.
+## v0.03 - Prototype campaign and special-block pass
 
-## v0.03 - Level authoring
-
+- [x] 10 deterministic prototype levels
+- [x] level selector
+- [x] per-level goals / move limits / seeds
+- [x] 4-match line blast
+- [x] 5-match color orb
+- [x] T/L bomb
+- [x] 2 x 2 seeker
+- [x] special-block chain reactions
+- [x] unlimited test boosters: Hammer / Row / Column / Shuffle
+- [x] first visual-polish pass with rounded glossy tiles and stage themes
 - [ ] serialized level asset format
-- [ ] board layout editor
-- [ ] move-limit editor
-- [ ] goal editor
+- [ ] visual board layout editor
 - [ ] obstacle hooks
-- [ ] validation report
-- [ ] one-click play test
-- [ ] 10 prototype levels
+- [ ] validation report / one-click play test
 
 ## v0.04 - Character meta slice
 
