@@ -35,6 +35,11 @@ namespace XMatch.Puzzle
         private string transientBanner = string.Empty;
         private float bannerUntil;
         private BoosterKind selectedBooster = BoosterKind.None;
+        private XMatchAudioDirector audioDirector;
+        private Color screenFlashColor = Color.white;
+        private float screenFlashAlpha;
+        private int screenFlashVersion;
+        private int cameraShakeVersion;
 
         private GUIStyle titleStyle;
         private GUIStyle infoStyle;
@@ -51,6 +56,7 @@ namespace XMatch.Puzzle
             {
                 EnsureCamera();
                 CreateTileSprite();
+                EnsureAudio();
 
                 StartLevel(0);
                 showLevelSelect = true;
@@ -240,6 +246,23 @@ namespace XMatch.Puzzle
                 new Color(0.055f, 0.045f, 0.085f);
             boardCamera.transform.position =
                 new Vector3(0f, BoardVerticalOffset, -10f);
+
+            if (boardCamera.GetComponent<AudioListener>() == null)
+            {
+                boardCamera.gameObject.AddComponent<AudioListener>();
+            }
+        }
+
+        private void EnsureAudio()
+        {
+            audioDirector =
+                GetComponent<XMatchAudioDirector>();
+
+            if (audioDirector == null)
+            {
+                audioDirector =
+                    gameObject.AddComponent<XMatchAudioDirector>();
+            }
         }
 
         private void FitCamera()
@@ -491,6 +514,13 @@ namespace XMatch.Puzzle
             BoosterKind booster = selectedBooster;
             selectedBooster = BoosterKind.None;
 
+            if (audioDirector != null)
+            {
+                audioDirector.Play(
+                    XMatchSoundKind.Booster,
+                    0.72f);
+            }
+
             PlayBoosterEffect(
                 booster,
                 target);
@@ -519,6 +549,7 @@ namespace XMatch.Puzzle
             {
                 CascadeStep step = cascades.Steps[i];
 
+                PlayCascadeFeedback(step);
                 ApplyCreatedPowerUpVisual(step);
                 yield return AnimateClear(step);
                 yield return AnimateGravity(step);
@@ -536,6 +567,8 @@ namespace XMatch.Puzzle
             {
                 yield return AnimateShuffle();
             }
+
+            PlayResultFeedback(session.Status);
 
             EnsurePresentationMatchesBoard();
             inputLocked = false;
@@ -556,6 +589,13 @@ namespace XMatch.Puzzle
             pointerArmed = true;
             pointerStartScreen = screenPosition;
             pointerStartCell = position;
+
+            if (audioDirector != null)
+            {
+                audioDirector.Play(
+                    XMatchSoundKind.Tap,
+                    0.30f);
+            }
         }
 
         private void ReleasePointer(Vector2 screenPosition)
@@ -573,6 +613,8 @@ namespace XMatch.Puzzle
             if (delta.magnitude <
                 SwipeThresholdPixels)
             {
+                TryActivateTappedPowerUp(
+                    pointerStartCell);
                 return;
             }
 
@@ -603,6 +645,79 @@ namespace XMatch.Puzzle
                 ResolveMoveRoutine(
                     pointerStartCell,
                     target));
+        }
+
+        private void TryActivateTappedPowerUp(
+            BoardPosition position)
+        {
+            if (!session.Board.IsInside(position) ||
+                session.Board.GetPowerUp(position) ==
+                PowerUpKind.None)
+            {
+                return;
+            }
+
+            StartCoroutine(
+                ResolveTappedPowerUpRoutine(
+                    position));
+        }
+
+        private IEnumerator ResolveTappedPowerUpRoutine(
+            BoardPosition position)
+        {
+            inputLocked = true;
+
+            PowerUpKind powerUp =
+                session.Board.GetPowerUp(position);
+
+            StageTurnResult turn =
+                session.TryActivatePowerUp(
+                    position);
+
+            if (!turn.Accepted)
+            {
+                inputLocked = false;
+                yield break;
+            }
+
+            ShowBanner(
+                PowerUpLabel(powerUp) +
+                "  TAP!",
+                0.75f);
+
+            for (int i = 0;
+                 i < turn.Move.Cascades.Steps.Count;
+                 i++)
+            {
+                CascadeStep step =
+                    turn.Move.Cascades.Steps[i];
+
+                PlayCascadeFeedback(step);
+                ApplyCreatedPowerUpVisual(step);
+
+                yield return AnimateClear(step);
+                yield return AnimateGravity(step);
+                yield return AnimateSpawns(step);
+
+                if (CascadePause > 0f)
+                {
+                    yield return
+                        new WaitForSeconds(
+                            CascadePause);
+                }
+            }
+
+            if (turn.Status ==
+                StageStatus.InProgress &&
+                turn.NeedsShuffle)
+            {
+                yield return AnimateShuffle();
+            }
+
+            PlayResultFeedback(turn.Status);
+
+            EnsurePresentationMatchesBoard();
+            inputLocked = false;
         }
 
         private IEnumerator ResolveMoveRoutine(
@@ -637,9 +752,23 @@ namespace XMatch.Puzzle
                     from,
                     to);
 
+                if (audioDirector != null)
+                {
+                    audioDirector.Play(
+                        XMatchSoundKind.Invalid,
+                        0.62f);
+                }
+
                 ShowBanner("NO MATCH", 0.7f);
                 inputLocked = false;
                 yield break;
+            }
+
+            if (audioDirector != null)
+            {
+                audioDirector.Play(
+                    XMatchSoundKind.Swap,
+                    0.42f);
             }
 
             SwapVisualMapping(
@@ -669,6 +798,7 @@ namespace XMatch.Puzzle
                         0.6f);
                 }
 
+                PlayCascadeFeedback(step);
                 ApplyCreatedPowerUpVisual(step);
                 yield return AnimateClear(step);
                 yield return AnimateGravity(step);
@@ -696,6 +826,8 @@ namespace XMatch.Puzzle
             {
                 ShowBanner("OUT OF MOVES", 5f);
             }
+
+            PlayResultFeedback(turn.Status);
 
             EnsurePresentationMatchesBoard();
             inputLocked = false;
@@ -1274,6 +1406,33 @@ namespace XMatch.Puzzle
                     creation.Kind,
                     creation.PowerUp);
 
+                if (audioDirector != null)
+                {
+                    audioDirector.Play(
+                        XMatchSoundKind.CreateSpecial,
+                        0.82f);
+                }
+
+                FlashScreen(
+                    new Color(
+                        1f,
+                        0.55f,
+                        0.92f,
+                        1f),
+                    0.20f,
+                    0.15f);
+
+                SpawnSparkBurst(
+                    creation.Position,
+                    10,
+                    new Color(
+                        1f,
+                        0.68f,
+                        0.95f,
+                        1f),
+                    2.8f,
+                    0.42f);
+
                 PlayVfx(
                     XMatchVfxKind.MagicCircle,
                     creation.Position,
@@ -1292,57 +1451,247 @@ namespace XMatch.Puzzle
             XMatchVfxKind effect =
                 XMatchVfxKind.PopSmall;
 
-            float duration = 0.28f;
+            float duration = 0.30f;
             Vector3 scale =
-                new Vector3(1.25f, 1.25f, 1f);
+                new Vector3(
+                    1.30f,
+                    1.30f,
+                    1f);
+
+            Color sparkColor =
+                TileSparkColor(tile.Kind);
+
+            int sparkCount = 2;
+            float sparkSpeed = 1.7f;
+            float sparkDuration = 0.30f;
 
             switch (tile.PowerUp)
             {
                 case PowerUpKind.RowBlast:
-                    effect = XMatchVfxKind.RowBlast;
-                    duration = 0.34f;
-                    scale = new Vector3(4.8f, 1.25f, 1f);
+                    effect =
+                        XMatchVfxKind.RowBlast;
+                    duration = 0.38f;
+                    scale =
+                        new Vector3(
+                            session.Board.Width * 1.10f,
+                            1.35f,
+                            1f);
+
+                    sparkCount = 12;
+                    sparkSpeed = 4.0f;
+                    sparkDuration = 0.42f;
+                    sparkColor =
+                        new Color(
+                            0.32f,
+                            0.95f,
+                            1f,
+                            1f);
+
+                    PlaySpecialSound(
+                        PowerUpKind.RowBlast);
+
+                    FlashScreen(
+                        sparkColor,
+                        0.18f,
+                        0.16f);
+
+                    ShakeCamera(
+                        0.12f,
+                        0.09f);
                     break;
 
                 case PowerUpKind.ColumnBlast:
-                    effect = XMatchVfxKind.ColumnBlast;
-                    duration = 0.34f;
-                    scale = new Vector3(1.25f, 4.8f, 1f);
+                    effect =
+                        XMatchVfxKind.ColumnBlast;
+                    duration = 0.38f;
+                    scale =
+                        new Vector3(
+                            1.35f,
+                            session.Board.Height * 1.10f,
+                            1f);
+
+                    sparkCount = 12;
+                    sparkSpeed = 4.0f;
+                    sparkDuration = 0.42f;
+                    sparkColor =
+                        new Color(
+                            1f,
+                            0.78f,
+                            0.24f,
+                            1f);
+
+                    PlaySpecialSound(
+                        PowerUpKind.ColumnBlast);
+
+                    FlashScreen(
+                        sparkColor,
+                        0.18f,
+                        0.16f);
+
+                    ShakeCamera(
+                        0.12f,
+                        0.09f);
                     break;
 
                 case PowerUpKind.Bomb:
-                    effect = XMatchVfxKind.BombBurst;
-                    duration = 0.42f;
-                    scale = new Vector3(2.6f, 2.6f, 1f);
+                    effect =
+                        XMatchVfxKind.BombBurst;
+                    duration = 0.48f;
+                    scale =
+                        new Vector3(
+                            3.25f,
+                            3.25f,
+                            1f);
+
+                    sparkCount = 18;
+                    sparkSpeed = 4.8f;
+                    sparkDuration = 0.52f;
+                    sparkColor =
+                        new Color(
+                            1f,
+                            0.34f,
+                            0.20f,
+                            1f);
+
+                    PlaySpecialSound(
+                        PowerUpKind.Bomb);
+
+                    PlayVfx(
+                        XMatchVfxKind.PopBig,
+                        tile.Position,
+                        0.40f,
+                        new Vector3(
+                            2.20f,
+                            2.20f,
+                            1f));
+
+                    PlayVfx(
+                        XMatchVfxKind.MagicCircle,
+                        tile.Position,
+                        0.46f,
+                        new Vector3(
+                            2.65f,
+                            2.65f,
+                            1f));
+
+                    FlashScreen(
+                        new Color(
+                            1f,
+                            0.54f,
+                            0.22f,
+                            1f),
+                        0.26f,
+                        0.28f);
+
+                    ShakeCamera(
+                        0.22f,
+                        0.18f);
                     break;
 
                 case PowerUpKind.ColorOrb:
-                    effect = XMatchVfxKind.ColorOrbBurst;
-                    duration = 0.50f;
-                    scale = new Vector3(3.0f, 3.0f, 1f);
+                    effect =
+                        XMatchVfxKind.ColorOrbBurst;
+                    duration = 0.64f;
+                    scale =
+                        new Vector3(
+                            4.15f,
+                            4.15f,
+                            1f);
+
+                    sparkCount = 24;
+                    sparkSpeed = 5.2f;
+                    sparkDuration = 0.62f;
+                    sparkColor =
+                        new Color(
+                            0.92f,
+                            0.52f,
+                            1f,
+                            1f);
+
+                    PlaySpecialSound(
+                        PowerUpKind.ColorOrb);
+
+                    PlayVfx(
+                        XMatchVfxKind.MagicCircle,
+                        tile.Position,
+                        0.68f,
+                        new Vector3(
+                            4.7f,
+                            4.7f,
+                            1f));
+
+                    PlayVfx(
+                        XMatchVfxKind.PopBig,
+                        tile.Position,
+                        0.54f,
+                        new Vector3(
+                            3.10f,
+                            3.10f,
+                            1f));
+
+                    FlashScreen(
+                        Color.white,
+                        0.34f,
+                        0.38f);
+
+                    ShakeCamera(
+                        0.30f,
+                        0.24f);
                     break;
 
                 case PowerUpKind.Seeker:
-                    effect = XMatchVfxKind.SeekerDash;
-                    duration = 0.34f;
-                    scale = new Vector3(1.8f, 1.8f, 1f);
+                    effect =
+                        XMatchVfxKind.SeekerDash;
+                    duration = 0.40f;
+                    scale =
+                        new Vector3(
+                            2.15f,
+                            2.15f,
+                            1f);
+
+                    sparkCount = 10;
+                    sparkSpeed = 3.6f;
+                    sparkDuration = 0.42f;
+                    sparkColor =
+                        new Color(
+                            0.50f,
+                            1f,
+                            0.62f,
+                            1f);
+
+                    PlaySpecialSound(
+                        PowerUpKind.Seeker);
+
+                    FlashScreen(
+                        sparkColor,
+                        0.14f,
+                        0.12f);
+
+                    ShakeCamera(
+                        0.10f,
+                        0.07f);
                     break;
 
                 default:
                     if (tile.Kind == TileKind.Heart)
                     {
-                        effect = XMatchVfxKind.HeartBurst;
-                        scale = new Vector3(1.40f, 1.40f, 1f);
+                        effect =
+                            XMatchVfxKind.HeartBurst;
+                        scale =
+                            new Vector3(
+                                1.52f,
+                                1.52f,
+                                1f);
                     }
                     else if (tile.Kind == TileKind.Rose)
                     {
-                        effect = XMatchVfxKind.RoseBurst;
-                        scale = new Vector3(1.40f, 1.40f, 1f);
-                    }
-                    else
-                    {
                         effect =
-                            XMatchVfxKind.PopSmall;
+                            XMatchVfxKind.RoseBurst;
+                        scale =
+                            new Vector3(
+                                1.52f,
+                                1.52f,
+                                1f);
                     }
                     break;
             }
@@ -1352,6 +1701,216 @@ namespace XMatch.Puzzle
                 tile.Position,
                 duration,
                 scale);
+
+            SpawnSparkBurst(
+                tile.Position,
+                sparkCount,
+                sparkColor,
+                sparkSpeed,
+                sparkDuration);
+        }
+
+        private void PlayCascadeFeedback(
+            CascadeStep step)
+        {
+            if (audioDirector != null)
+            {
+                audioDirector.PlayMatch(
+                    step.ChainNumber);
+            }
+
+            if (step.ChainNumber <= 1)
+            {
+                return;
+            }
+
+            float strength =
+                Mathf.Clamp(
+                    0.05f +
+                    ((step.ChainNumber - 1) * 0.025f),
+                    0.05f,
+                    0.16f);
+
+            FlashScreen(
+                ThemeColor(currentLevelIndex),
+                0.12f,
+                strength);
+
+            if (step.ChainNumber >= 3)
+            {
+                ShakeCamera(
+                    0.10f,
+                    Mathf.Min(
+                        0.06f +
+                        (step.ChainNumber * 0.012f),
+                        0.14f));
+            }
+        }
+
+        private void PlaySpecialSound(
+            PowerUpKind powerUp)
+        {
+            if (audioDirector == null)
+            {
+                return;
+            }
+
+            switch (powerUp)
+            {
+                case PowerUpKind.RowBlast:
+                    audioDirector.Play(
+                        XMatchSoundKind.RowBlast,
+                        0.90f);
+                    break;
+
+                case PowerUpKind.ColumnBlast:
+                    audioDirector.Play(
+                        XMatchSoundKind.ColumnBlast,
+                        0.90f);
+                    break;
+
+                case PowerUpKind.Bomb:
+                    audioDirector.Play(
+                        XMatchSoundKind.Bomb,
+                        1f);
+                    break;
+
+                case PowerUpKind.ColorOrb:
+                    audioDirector.Play(
+                        XMatchSoundKind.ColorOrb,
+                        1f);
+                    break;
+
+                case PowerUpKind.Seeker:
+                    audioDirector.Play(
+                        XMatchSoundKind.Seeker,
+                        0.88f);
+                    break;
+            }
+        }
+
+        private void PlayResultFeedback(
+            StageStatus status)
+        {
+            if (status == StageStatus.Won)
+            {
+                if (audioDirector != null)
+                {
+                    audioDirector.Play(
+                        XMatchSoundKind.Clear,
+                        1f);
+                }
+
+                BoardPosition center =
+                    new BoardPosition(
+                        session.Board.Width / 2,
+                        session.Board.Height / 2);
+
+                PlayVfx(
+                    XMatchVfxKind.PopBig,
+                    center,
+                    0.82f,
+                    new Vector3(
+                        6.2f,
+                        6.2f,
+                        1f));
+
+                PlayVfx(
+                    XMatchVfxKind.MagicCircle,
+                    center,
+                    0.92f,
+                    new Vector3(
+                        5.0f,
+                        5.0f,
+                        1f));
+
+                SpawnSparkBurst(
+                    center,
+                    28,
+                    new Color(
+                        1f,
+                        0.80f,
+                        0.28f,
+                        1f),
+                    5.4f,
+                    0.90f);
+
+                FlashScreen(
+                    new Color(
+                        1f,
+                        0.84f,
+                        0.36f,
+                        1f),
+                    0.44f,
+                    0.40f);
+
+                ShakeCamera(
+                    0.26f,
+                    0.18f);
+            }
+            else if (status == StageStatus.Lost)
+            {
+                if (audioDirector != null)
+                {
+                    audioDirector.Play(
+                        XMatchSoundKind.Fail,
+                        0.80f);
+                }
+
+                FlashScreen(
+                    new Color(
+                        0.60f,
+                        0.08f,
+                        0.16f,
+                        1f),
+                    0.28f,
+                    0.22f);
+            }
+        }
+
+        private static Color TileSparkColor(
+            TileKind kind)
+        {
+            switch (kind)
+            {
+                case TileKind.Heart:
+                    return new Color(
+                        1f,
+                        0.24f,
+                        0.34f,
+                        1f);
+
+                case TileKind.Lips:
+                    return new Color(
+                        1f,
+                        0.25f,
+                        0.78f,
+                        1f);
+
+                case TileKind.Diamond:
+                    return new Color(
+                        0.24f,
+                        0.86f,
+                        1f,
+                        1f);
+
+                case TileKind.Perfume:
+                    return new Color(
+                        0.72f,
+                        0.42f,
+                        1f,
+                        1f);
+
+                case TileKind.Rose:
+                    return new Color(
+                        0.42f,
+                        1f,
+                        0.42f,
+                        1f);
+
+                default:
+                    return Color.white;
+            }
         }
 
         private void PlayBoosterEffect(
@@ -1496,6 +2055,329 @@ namespace XMatch.Puzzle
             }
 
             Destroy(effectObject);
+        }
+
+        private void SpawnSparkBurst(
+            BoardPosition position,
+            int count,
+            Color color,
+            float speed,
+            float duration)
+        {
+            if (count <= 0 ||
+                tileSprite == null)
+            {
+                return;
+            }
+
+            StartCoroutine(
+                AnimateSparkBurst(
+                    BoardToWorld(position),
+                    count,
+                    color,
+                    speed,
+                    duration));
+        }
+
+        private IEnumerator AnimateSparkBurst(
+            Vector3 origin,
+            int count,
+            Color color,
+            float speed,
+            float duration)
+        {
+            var objects =
+                new GameObject[count];
+
+            var renderers =
+                new SpriteRenderer[count];
+
+            var velocities =
+                new Vector3[count];
+
+            var spin =
+                new float[count];
+
+            var baseScale =
+                new float[count];
+
+            for (int i = 0; i < count; i++)
+            {
+                var sparkle =
+                    new GameObject("FX_Spark");
+
+                sparkle.transform.SetParent(
+                    transform,
+                    worldPositionStays: true);
+
+                sparkle.transform.position =
+                    origin +
+                    new Vector3(
+                        0f,
+                        0f,
+                        -0.30f);
+
+                var renderer =
+                    sparkle.AddComponent<SpriteRenderer>();
+
+                renderer.sprite = tileSprite;
+                renderer.sortingOrder = 38;
+
+                Color startColor = color;
+                startColor.a = 0.95f;
+                renderer.color = startColor;
+
+                Vector2 direction =
+                    UnityEngine.Random.insideUnitCircle;
+
+                if (direction.sqrMagnitude <
+                    0.001f)
+                {
+                    direction = Vector2.up;
+                }
+
+                direction.Normalize();
+
+                float particleSpeed =
+                    speed *
+                    UnityEngine.Random.Range(
+                        0.58f,
+                        1.18f);
+
+                velocities[i] =
+                    new Vector3(
+                        direction.x,
+                        direction.y,
+                        0f) *
+                    particleSpeed;
+
+                spin[i] =
+                    UnityEngine.Random.Range(
+                        -420f,
+                        420f);
+
+                baseScale[i] =
+                    UnityEngine.Random.Range(
+                        0.055f,
+                        0.14f);
+
+                sparkle.transform.localScale =
+                    Vector3.one *
+                    baseScale[i];
+
+                objects[i] = sparkle;
+                renderers[i] = renderer;
+            }
+
+            float elapsed = 0f;
+
+            while (elapsed < duration)
+            {
+                float delta =
+                    Time.unscaledDeltaTime;
+
+                elapsed += delta;
+
+                float t =
+                    Mathf.Clamp01(
+                        elapsed / duration);
+
+                float fade =
+                    1f -
+                    (t * t);
+
+                for (int i = 0; i < count; i++)
+                {
+                    if (objects[i] == null)
+                    {
+                        continue;
+                    }
+
+                    objects[i].transform.position +=
+                        velocities[i] * delta;
+
+                    velocities[i] *=
+                        Mathf.Pow(
+                            0.06f,
+                            delta);
+
+                    objects[i].transform.Rotate(
+                        0f,
+                        0f,
+                        spin[i] * delta);
+
+                    float scale =
+                        baseScale[i] *
+                        Mathf.Lerp(
+                            1.25f,
+                            0.18f,
+                            t);
+
+                    objects[i].transform.localScale =
+                        Vector3.one * scale;
+
+                    Color current = color;
+                    current.a = fade;
+                    renderers[i].color = current;
+                }
+
+                yield return null;
+            }
+
+            for (int i = 0; i < count; i++)
+            {
+                if (objects[i] != null)
+                {
+                    Destroy(objects[i]);
+                }
+            }
+        }
+
+        private void FlashScreen(
+            Color color,
+            float duration,
+            float peakAlpha)
+        {
+            screenFlashVersion++;
+
+            StartCoroutine(
+                AnimateScreenFlash(
+                    color,
+                    duration,
+                    peakAlpha,
+                    screenFlashVersion));
+        }
+
+        private IEnumerator AnimateScreenFlash(
+            Color color,
+            float duration,
+            float peakAlpha,
+            int version)
+        {
+            screenFlashColor = color;
+            screenFlashAlpha =
+                Mathf.Clamp01(peakAlpha);
+
+            float elapsed = 0f;
+
+            while (elapsed < duration &&
+                   version == screenFlashVersion)
+            {
+                elapsed +=
+                    Time.unscaledDeltaTime;
+
+                float t =
+                    Mathf.Clamp01(
+                        elapsed / duration);
+
+                screenFlashAlpha =
+                    Mathf.Clamp01(
+                        peakAlpha *
+                        (1f - (t * t)));
+
+                yield return null;
+            }
+
+            if (version == screenFlashVersion)
+            {
+                screenFlashAlpha = 0f;
+            }
+        }
+
+        private void ShakeCamera(
+            float duration,
+            float strength)
+        {
+            if (boardCamera == null)
+            {
+                return;
+            }
+
+            cameraShakeVersion++;
+
+            StartCoroutine(
+                AnimateCameraShake(
+                    duration,
+                    strength,
+                    cameraShakeVersion));
+        }
+
+        private IEnumerator AnimateCameraShake(
+            float duration,
+            float strength,
+            int version)
+        {
+            Vector3 basePosition =
+                new Vector3(
+                    0f,
+                    BoardVerticalOffset,
+                    -10f);
+
+            float elapsed = 0f;
+
+            while (elapsed < duration &&
+                   version == cameraShakeVersion)
+            {
+                elapsed +=
+                    Time.unscaledDeltaTime;
+
+                float t =
+                    Mathf.Clamp01(
+                        elapsed / duration);
+
+                float fade =
+                    1f - t;
+
+                Vector2 offset =
+                    UnityEngine.Random.insideUnitCircle *
+                    strength *
+                    fade;
+
+                boardCamera.transform.position =
+                    basePosition +
+                    new Vector3(
+                        offset.x,
+                        offset.y,
+                        0f);
+
+                yield return null;
+            }
+
+            if (version == cameraShakeVersion)
+            {
+                boardCamera.transform.position =
+                    basePosition;
+            }
+        }
+
+        private void DrawScreenFlash()
+        {
+            if (screenFlashAlpha <= 0.001f)
+            {
+                return;
+            }
+
+            Color oldColor =
+                GUI.color;
+
+            Color flash =
+                screenFlashColor;
+
+            flash.a =
+                screenFlashAlpha;
+
+            GUI.color = flash;
+
+            GUI.DrawTexture(
+                new Rect(
+                    0f,
+                    0f,
+                    Screen.width,
+                    Screen.height),
+                Texture2D.whiteTexture,
+                ScaleMode.StretchToFill);
+
+            GUI.color = oldColor;
         }
 
         private bool IsScreenPointOverBoosterBar(
@@ -1770,6 +2652,8 @@ namespace XMatch.Puzzle
                     status,
                     statusStyle);
             }
+
+            DrawScreenFlash();
 
             if (session.Status !=
                 StageStatus.InProgress)
@@ -2046,6 +2930,32 @@ namespace XMatch.Puzzle
 
                 if (session.UseShuffleBooster())
                 {
+                    if (audioDirector != null)
+                    {
+                        audioDirector.Play(
+                            XMatchSoundKind.Shuffle,
+                            0.78f);
+                    }
+
+                    BoardPosition center =
+                        new BoardPosition(
+                            session.Board.Width / 2,
+                            session.Board.Height / 2);
+
+                    PlayVfx(
+                        XMatchVfxKind.MagicCircle,
+                        center,
+                        0.48f,
+                        new Vector3(
+                            3.8f,
+                            3.8f,
+                            1f));
+
+                    FlashScreen(
+                        ThemeColor(currentLevelIndex),
+                        0.22f,
+                        0.18f);
+
                     ClearVisuals();
                     BuildVisuals();
                     ShowBanner("SHUFFLE ∞", 0.8f);

@@ -82,6 +82,57 @@ namespace XMatch.Core
                 NeedsShuffle);
         }
 
+        public StageTurnResult TryActivatePowerUp(
+            BoardPosition target)
+        {
+            if (Status != StageStatus.InProgress)
+            {
+                throw new InvalidOperationException(
+                    "Cannot activate a power-up after the stage has ended.");
+            }
+
+            if (!Board.IsInside(target) ||
+                Board.Get(target) == TileKind.Empty ||
+                Board.GetPowerUp(target) == PowerUpKind.None)
+            {
+                return new StageTurnResult(
+                    MoveResult.Rejected(
+                        target,
+                        target),
+                    MovesRemaining,
+                    Status,
+                    NeedsShuffle);
+            }
+
+            var clearSet =
+                new HashSet<BoardPosition>
+                {
+                    target
+                };
+
+            CascadeResult cascades =
+                CascadeResolver.ResolveForcedClear(
+                    Board,
+                    clearSet,
+                    tileSource);
+
+            MoveResult move =
+                MoveResult.AcceptedMove(
+                    target,
+                    target,
+                    cascades);
+
+            MovesRemaining--;
+            ApplyGoalProgress(cascades);
+            UpdateStatus();
+
+            return new StageTurnResult(
+                move,
+                MovesRemaining,
+                Status,
+                NeedsShuffle);
+        }
+
         public CascadeResult UseBooster(
             BoosterKind booster,
             BoardPosition target)
