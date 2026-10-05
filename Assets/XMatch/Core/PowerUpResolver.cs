@@ -9,6 +9,17 @@ namespace XMatch.Core
             BoardState board,
             HashSet<BoardPosition> clearSet)
         {
+            ExpandTriggeredPowerUps(
+                board,
+                clearSet,
+                suppressed: null);
+        }
+
+        private static void ExpandTriggeredPowerUps(
+            BoardState board,
+            HashSet<BoardPosition> clearSet,
+            HashSet<BoardPosition> suppressed)
+        {
             if (board == null)
             {
                 throw new ArgumentNullException(nameof(board));
@@ -26,7 +37,9 @@ namespace XMatch.Core
                 BoardPosition position = queue.Dequeue();
 
                 if (!board.IsInside(position) ||
-                    board.Get(position) == TileKind.Empty)
+                    board.Get(position) == TileKind.Empty ||
+                    (suppressed != null &&
+                     suppressed.Contains(position)))
                 {
                     continue;
                 }
@@ -93,6 +106,26 @@ namespace XMatch.Core
                 {
                     AddColor(board, clearSet, targetKind);
                 }
+
+                var suppressed =
+                    new HashSet<BoardPosition>();
+
+                if (fromOrb)
+                {
+                    suppressed.Add(to);
+                }
+
+                if (toOrb)
+                {
+                    suppressed.Add(from);
+                }
+
+                ExpandTriggeredPowerUps(
+                    board,
+                    clearSet,
+                    suppressed);
+
+                return clearSet;
             }
 
             ExpandTriggeredPowerUps(board, clearSet);
