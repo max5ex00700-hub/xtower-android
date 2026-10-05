@@ -5,6 +5,7 @@ namespace XMatch.Core
     public sealed class BoardState
     {
         private readonly TileKind[,] cells;
+        private readonly PowerUpKind[,] powerUps;
 
         public BoardState(int width, int height)
         {
@@ -21,6 +22,7 @@ namespace XMatch.Core
             Width = width;
             Height = height;
             cells = new TileKind[width, height];
+            powerUps = new PowerUpKind[width, height];
         }
 
         public int Width { get; }
@@ -40,10 +42,46 @@ namespace XMatch.Core
             return cells[position.X, position.Y];
         }
 
+        public PowerUpKind GetPowerUp(BoardPosition position)
+        {
+            EnsureInside(position);
+            return powerUps[position.X, position.Y];
+        }
+
         public void Set(BoardPosition position, TileKind tile)
         {
             EnsureInside(position);
             cells[position.X, position.Y] = tile;
+
+            if (tile == TileKind.Empty)
+            {
+                powerUps[position.X, position.Y] = PowerUpKind.None;
+            }
+        }
+
+        public void SetPowerUp(
+            BoardPosition position,
+            PowerUpKind powerUp)
+        {
+            EnsureInside(position);
+
+            if (cells[position.X, position.Y] == TileKind.Empty &&
+                powerUp != PowerUpKind.None)
+            {
+                throw new InvalidOperationException(
+                    "An empty cell cannot hold a power-up.");
+            }
+
+            powerUps[position.X, position.Y] = powerUp;
+        }
+
+        public void SetCell(
+            BoardPosition position,
+            TileKind tile,
+            PowerUpKind powerUp)
+        {
+            Set(position, tile);
+            SetPowerUp(position, powerUp);
         }
 
         public void Swap(BoardPosition a, BoardPosition b)
@@ -51,9 +89,13 @@ namespace XMatch.Core
             EnsureInside(a);
             EnsureInside(b);
 
-            TileKind temp = cells[a.X, a.Y];
+            TileKind tempKind = cells[a.X, a.Y];
             cells[a.X, a.Y] = cells[b.X, b.Y];
-            cells[b.X, b.Y] = temp;
+            cells[b.X, b.Y] = tempKind;
+
+            PowerUpKind tempPower = powerUps[a.X, a.Y];
+            powerUps[a.X, a.Y] = powerUps[b.X, b.Y];
+            powerUps[b.X, b.Y] = tempPower;
         }
 
         public BoardState Clone()
@@ -65,6 +107,7 @@ namespace XMatch.Core
                 for (int y = 0; y < Height; y++)
                 {
                     clone.cells[x, y] = cells[x, y];
+                    clone.powerUps[x, y] = powerUps[x, y];
                 }
             }
 

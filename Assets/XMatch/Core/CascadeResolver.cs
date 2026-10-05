@@ -21,6 +21,7 @@ namespace XMatch.Core
                 board,
                 MatchFinder.FindMatches(board),
                 tileSource,
+                null,
                 maxCascades);
         }
 
@@ -30,14 +31,61 @@ namespace XMatch.Core
             ITileSource tileSource,
             int maxCascades = DefaultMaxCascades)
         {
+            return Resolve(
+                board,
+                initialMatches,
+                tileSource,
+                null,
+                maxCascades);
+        }
+
+        public static CascadeResult Resolve(
+            BoardState board,
+            IEnumerable<BoardPosition> initialMatches,
+            ITileSource tileSource,
+            BoardPosition? preferredPowerUpPosition,
+            int maxCascades = DefaultMaxCascades)
+        {
+            return ResolveInternal(
+                board,
+                initialMatches,
+                tileSource,
+                preferredPowerUpPosition,
+                firstStepIsForcedClear: false,
+                maxCascades: maxCascades);
+        }
+
+        public static CascadeResult ResolveForcedClear(
+            BoardState board,
+            IEnumerable<BoardPosition> forcedClear,
+            ITileSource tileSource,
+            int maxCascades = DefaultMaxCascades)
+        {
+            return ResolveInternal(
+                board,
+                forcedClear,
+                tileSource,
+                preferredPowerUpPosition: null,
+                firstStepIsForcedClear: true,
+                maxCascades: maxCascades);
+        }
+
+        private static CascadeResult ResolveInternal(
+            BoardState board,
+            IEnumerable<BoardPosition> initialPositions,
+            ITileSource tileSource,
+            BoardPosition? preferredPowerUpPosition,
+            bool firstStepIsForcedClear,
+            int maxCascades)
+        {
             if (board == null)
             {
                 throw new ArgumentNullException(nameof(board));
             }
 
-            if (initialMatches == null)
+            if (initialPositions == null)
             {
-                throw new ArgumentNullException(nameof(initialMatches));
+                throw new ArgumentNullException(nameof(initialPositions));
             }
 
             if (tileSource == null)
@@ -50,10 +98,11 @@ namespace XMatch.Core
                 throw new ArgumentOutOfRangeException(nameof(maxCascades));
             }
 
-            var matches = new HashSet<BoardPosition>(initialMatches);
+            var positions = new HashSet<BoardPosition>(initialPositions);
             var steps = new List<CascadeStep>();
+            bool first = true;
 
-            while (matches.Count > 0)
+            while (positions.Count > 0)
             {
                 if (steps.Count >= maxCascades)
                 {
@@ -62,8 +111,51 @@ namespace XMatch.Core
                         "Check the tile source or level state for an endless cascade.");
                 }
 
+                bool forced = first && firstStepIsForcedClear;
+                PowerUpCreation? creation = null;
+
+                if (!forced)
+                {
+                    creation = PowerUpPlanner.Plan(
+                        board,
+                        positions,
+                        first
+                            ? preferredPowerUpPosition
+                            : null);
+                }
+
+                var clearSet =
+                    new HashSet<BoardPosition>(positions);
+
+                if (creation.HasValue)
+                {
+                    clearSet.Remove(
+                        creation.Value.Position);
+                }
+
+                PowerUpResolver.ExpandTriggeredPowerUps(
+                    board,
+                    clearSet);
+
+                if (creation.HasValue)
+                {
+                    clearSet.Remove(
+                        creation.Value.Position);
+                }
+
                 List<ClearedTile> cleared =
-                    BoardResolver.Clear(board, matches);
+                    BoardResolver.Clear(board, clearSet);
+
+                if (creation.HasValue)
+                {
+                    PowerUpCreation value =
+                        creation.Value;
+
+                    board.SetCell(
+                        value.Position,
+                        value.Kind,
+                        value.PowerUp);
+                }
 
                 List<TileMove> moved =
                     BoardResolver.ApplyGravity(board);
@@ -76,9 +168,11 @@ namespace XMatch.Core
                         steps.Count + 1,
                         cleared,
                         moved,
-                        spawned));
+                        spawned,
+                        creation));
 
-                matches = MatchFinder.FindMatches(board);
+                positions = MatchFinder.FindMatches(board);
+                first = false;
             }
 
             return new CascadeResult(steps);

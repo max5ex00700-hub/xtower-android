@@ -69,11 +69,13 @@ namespace XMatch.Core
                         continue;
                     }
 
+                    PowerUpKind power = board.GetPowerUp(from);
+
                     if (readY != writeY)
                     {
                         var to = new BoardPosition(x, writeY);
 
-                        board.Set(to, kind);
+                        board.SetCell(to, kind, power);
                         board.Set(from, TileKind.Empty);
                         moves.Add(new TileMove(kind, from, to));
                     }
@@ -114,13 +116,17 @@ namespace XMatch.Core
 
                     TileKind kind = tileSource.NextTile(position);
 
-                    if (kind == TileKind.Empty)
+                    if (kind == TileKind.Empty ||
+                        kind == TileKind.Wild)
                     {
                         throw new InvalidOperationException(
-                            "ITileSource returned TileKind.Empty during refill.");
+                            "ITileSource returned an invalid refill tile.");
                     }
 
-                    board.Set(position, kind);
+                    board.SetCell(
+                        position,
+                        kind,
+                        PowerUpKind.None);
                     spawns.Add(new TileSpawn(kind, position));
                 }
             }

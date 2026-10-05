@@ -7,6 +7,7 @@ namespace XMatch.Core
         Lips = 2,
         Diamond = 3,
         Perfume = 4,
-        Rose = 5
+        Rose = 5,
+        Wild = 6
     }
 }

@@ -21,14 +21,14 @@ namespace XMatch.Core
             }
 
             var original =
-                new List<TileKind>(board.Width * board.Height);
+                new List<CellSnapshot>(board.Width * board.Height);
 
             for (int y = 0; y < board.Height; y++)
             {
                 for (int x = 0; x < board.Width; x++)
                 {
-                    TileKind kind =
-                        board.Get(new BoardPosition(x, y));
+                    var position = new BoardPosition(x, y);
+                    TileKind kind = board.Get(position);
 
                     if (kind == TileKind.Empty)
                     {
@@ -36,7 +36,10 @@ namespace XMatch.Core
                             "A stable board cannot be shuffled while it contains empty cells.");
                     }
 
-                    original.Add(kind);
+                    original.Add(
+                        new CellSnapshot(
+                            kind,
+                            board.GetPowerUp(position)));
                 }
             }
 
@@ -44,7 +47,7 @@ namespace XMatch.Core
 
             for (int attempt = 0; attempt < maxAttempts; attempt++)
             {
-                var shuffled = new List<TileKind>(original);
+                var shuffled = new List<CellSnapshot>(original);
                 FisherYates(shuffled, ref rng);
                 Write(board, shuffled);
 
@@ -60,14 +63,14 @@ namespace XMatch.Core
         }
 
         private static void FisherYates(
-            List<TileKind> tiles,
+            List<CellSnapshot> tiles,
             ref ShuffleRng rng)
         {
             for (int i = tiles.Count - 1; i > 0; i--)
             {
                 int j = rng.Next(i + 1);
 
-                TileKind temp = tiles[i];
+                CellSnapshot temp = tiles[i];
                 tiles[i] = tiles[j];
                 tiles[j] = temp;
             }
@@ -75,7 +78,7 @@ namespace XMatch.Core
 
         private static void Write(
             BoardState board,
-            IReadOnlyList<TileKind> cells)
+            IReadOnlyList<CellSnapshot> cells)
         {
             int index = 0;
 
@@ -83,11 +86,28 @@ namespace XMatch.Core
             {
                 for (int x = 0; x < board.Width; x++)
                 {
-                    board.Set(
+                    CellSnapshot cell = cells[index++];
+
+                    board.SetCell(
                         new BoardPosition(x, y),
-                        cells[index++]);
+                        cell.Kind,
+                        cell.PowerUp);
                 }
             }
+        }
+
+        private readonly struct CellSnapshot
+        {
+            public CellSnapshot(
+                TileKind kind,
+                PowerUpKind powerUp)
+            {
+                Kind = kind;
+                PowerUp = powerUp;
+            }
+
+            public TileKind Kind { get; }
+            public PowerUpKind PowerUp { get; }
         }
 
         private struct ShuffleRng

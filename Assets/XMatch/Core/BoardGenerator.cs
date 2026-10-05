@@ -72,7 +72,7 @@ namespace XMatch.Core
                     {
                         TileKind candidate = source.NextTile(position);
 
-                        if (!CreatesImmediateRun(
+                        if (!CreatesImmediateMatch(
                                 board,
                                 position,
                                 candidate))
@@ -92,7 +92,7 @@ namespace XMatch.Core
                     {
                         TileKind fallback = NormalKinds[i];
 
-                        if (!CreatesImmediateRun(
+                        if (!CreatesImmediateMatch(
                                 board,
                                 position,
                                 fallback))
@@ -112,7 +112,7 @@ namespace XMatch.Core
             }
         }
 
-        private static bool CreatesImmediateRun(
+        private static bool CreatesImmediateMatch(
             BoardState board,
             BoardPosition position,
             TileKind candidate)
@@ -138,6 +138,24 @@ namespace XMatch.Core
                     new BoardPosition(position.X, position.Y - 2));
 
                 if (down1 == candidate && down2 == candidate)
+                {
+                    return true;
+                }
+            }
+
+            if (position.X >= 1 &&
+                position.Y >= 1)
+            {
+                TileKind left = board.Get(
+                    new BoardPosition(position.X - 1, position.Y));
+                TileKind down = board.Get(
+                    new BoardPosition(position.X, position.Y - 1));
+                TileKind diagonal = board.Get(
+                    new BoardPosition(position.X - 1, position.Y - 1));
+
+                if (left == candidate &&
+                    down == candidate &&
+                    diagonal == candidate)
                 {
                     return true;
                 }

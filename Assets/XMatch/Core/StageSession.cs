@@ -82,6 +82,85 @@ namespace XMatch.Core
                 NeedsShuffle);
         }
 
+        public CascadeResult UseBooster(
+            BoosterKind booster,
+            BoardPosition target)
+        {
+            if (Status != StageStatus.InProgress)
+            {
+                throw new InvalidOperationException(
+                    "Cannot use a booster after the stage has ended.");
+            }
+
+            if (!Board.IsInside(target))
+            {
+                throw new ArgumentOutOfRangeException(nameof(target));
+            }
+
+            var clearSet = new HashSet<BoardPosition>();
+
+            switch (booster)
+            {
+                case BoosterKind.Hammer:
+                    clearSet.Add(target);
+                    break;
+
+                case BoosterKind.RowClear:
+                    for (int x = 0; x < Board.Width; x++)
+                    {
+                        clearSet.Add(
+                            new BoardPosition(x, target.Y));
+                    }
+                    break;
+
+                case BoosterKind.ColumnClear:
+                    for (int y = 0; y < Board.Height; y++)
+                    {
+                        clearSet.Add(
+                            new BoardPosition(target.X, y));
+                    }
+                    break;
+
+                default:
+                    throw new ArgumentException(
+                        "This booster requires a board target.",
+                        nameof(booster));
+            }
+
+            CascadeResult cascades =
+                CascadeResolver.ResolveForcedClear(
+                    Board,
+                    clearSet,
+                    tileSource);
+
+            ApplyGoalProgress(cascades);
+            UpdateStatus();
+            return cascades;
+        }
+
+        public bool UseShuffleBooster(int maxAttempts = 200)
+        {
+            if (Status != StageStatus.InProgress)
+            {
+                return false;
+            }
+
+            int seed = unchecked(
+                Level.RefillSeed ^
+                ((ShuffleCount + 1) * 1640531527));
+
+            if (!BoardShuffler.TryShuffle(
+                    Board,
+                    seed,
+                    maxAttempts))
+            {
+                return false;
+            }
+
+            ShuffleCount++;
+            return true;
+        }
+
         public bool TryShuffleBoard(int maxAttempts = 200)
         {
             if (Status != StageStatus.InProgress ||

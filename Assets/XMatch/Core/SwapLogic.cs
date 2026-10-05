@@ -23,6 +23,30 @@ namespace XMatch.Core
             return dx + dy == 1;
         }
 
+        public static bool IsPowerUpSwap(
+            BoardState board,
+            BoardPosition a,
+            BoardPosition b)
+        {
+            if (board == null)
+            {
+                throw new ArgumentNullException(nameof(board));
+            }
+
+            if (!CanAttemptSwap(board, a, b))
+            {
+                return false;
+            }
+
+            PowerUpKind aPower = board.GetPowerUp(a);
+            PowerUpKind bPower = board.GetPowerUp(b);
+
+            return aPower == PowerUpKind.ColorOrb ||
+                   bPower == PowerUpKind.ColorOrb ||
+                   (aPower != PowerUpKind.None &&
+                    bPower != PowerUpKind.None);
+        }
+
         public static bool WouldCreateMatch(
             BoardState board,
             BoardPosition a,
@@ -36,6 +60,11 @@ namespace XMatch.Core
             if (!CanAttemptSwap(board, a, b))
             {
                 return false;
+            }
+
+            if (IsPowerUpSwap(board, a, b))
+            {
+                return true;
             }
 
             board.Swap(a, b);
@@ -66,7 +95,8 @@ namespace XMatch.Core
 
             matches = new HashSet<BoardPosition>();
 
-            if (!CanAttemptSwap(board, a, b))
+            if (!CanAttemptSwap(board, a, b) ||
+                IsPowerUpSwap(board, a, b))
             {
                 return false;
             }
@@ -104,9 +134,19 @@ namespace XMatch.Core
             TileKind aKind = board.Get(a);
             TileKind bKind = board.Get(b);
 
-            return aKind != TileKind.Empty &&
-                   bKind != TileKind.Empty &&
-                   aKind != bKind;
+            if (aKind == TileKind.Empty ||
+                bKind == TileKind.Empty)
+            {
+                return false;
+            }
+
+            if (aKind != bKind)
+            {
+                return true;
+            }
+
+            return board.GetPowerUp(a) != PowerUpKind.None ||
+                   board.GetPowerUp(b) != PowerUpKind.None;
         }
     }
 }
