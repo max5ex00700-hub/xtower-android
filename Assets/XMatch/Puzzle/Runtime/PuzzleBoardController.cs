@@ -47,6 +47,11 @@ namespace XMatch.Puzzle
         private GUIStyle goalStyle;
         private GUIStyle statusStyle;
         private GUIStyle buttonStyle;
+        private GUIStyle resultPanelStyle;
+        private GUIStyle resultTitleStyle;
+        private GUIStyle resultSubtitleStyle;
+        private GUIStyle primaryActionStyle;
+        private GUIStyle secondaryActionStyle;
 
         private void Start()
         {
@@ -3170,6 +3175,97 @@ namespace XMatch.Puzzle
                 new GUIStyle(GUI.skin.button);
             buttonStyle.fontStyle =
                 FontStyle.Bold;
+
+            resultPanelStyle =
+                new GUIStyle(GUI.skin.box);
+            resultPanelStyle.normal.background =
+                XMatchArtLibrary
+                    .GetResultPanelTexture();
+            resultPanelStyle.border =
+                new RectOffset(
+                    18,
+                    18,
+                    18,
+                    18);
+            resultPanelStyle.padding =
+                new RectOffset(
+                    24,
+                    24,
+                    24,
+                    24);
+
+            resultTitleStyle =
+                new GUIStyle(GUI.skin.label);
+            resultTitleStyle.fontStyle =
+                FontStyle.Bold;
+            resultTitleStyle.alignment =
+                TextAnchor.MiddleCenter;
+            resultTitleStyle.normal.textColor =
+                new Color(
+                    0.94f,
+                    0.86f,
+                    0.66f);
+
+            resultSubtitleStyle =
+                new GUIStyle(GUI.skin.label);
+            resultSubtitleStyle.alignment =
+                TextAnchor.MiddleCenter;
+            resultSubtitleStyle.wordWrap = true;
+            resultSubtitleStyle.normal.textColor =
+                new Color(
+                    0.84f,
+                    0.82f,
+                    0.78f);
+
+            primaryActionStyle =
+                new GUIStyle(GUI.skin.button);
+            primaryActionStyle.fontStyle =
+                FontStyle.Bold;
+            primaryActionStyle.alignment =
+                TextAnchor.MiddleCenter;
+            primaryActionStyle.normal.textColor =
+                new Color(
+                    0.97f,
+                    0.93f,
+                    0.84f);
+            primaryActionStyle.normal.background =
+                XMatchArtLibrary
+                    .GetPrimaryButtonTexture();
+            primaryActionStyle.hover.background =
+                primaryActionStyle.normal.background;
+            primaryActionStyle.active.background =
+                primaryActionStyle.normal.background;
+            primaryActionStyle.border =
+                new RectOffset(
+                    18,
+                    18,
+                    18,
+                    18);
+
+            secondaryActionStyle =
+                new GUIStyle(GUI.skin.button);
+            secondaryActionStyle.fontStyle =
+                FontStyle.Bold;
+            secondaryActionStyle.alignment =
+                TextAnchor.MiddleCenter;
+            secondaryActionStyle.normal.textColor =
+                new Color(
+                    0.88f,
+                    0.88f,
+                    0.88f);
+            secondaryActionStyle.normal.background =
+                XMatchArtLibrary
+                    .GetSecondaryButtonTexture();
+            secondaryActionStyle.hover.background =
+                secondaryActionStyle.normal.background;
+            secondaryActionStyle.active.background =
+                secondaryActionStyle.normal.background;
+            secondaryActionStyle.border =
+                new RectOffset(
+                    18,
+                    18,
+                    18,
+                    18);
         }
 
         private void OnGUI()
@@ -3346,65 +3442,254 @@ namespace XMatch.Puzzle
             if (session.Status !=
                 StageStatus.InProgress)
             {
-                float buttonWidth =
-                    Mathf.Min(
-                        Screen.width * 0.55f,
-                        360f);
-                float buttonHeight =
+                DrawStageEndOverlay();
+            }
+        }
+
+        private void DrawStageEndOverlay()
+        {
+            Color oldColor =
+                GUI.color;
+
+            GUI.color =
+                new Color(
+                    0f,
+                    0f,
+                    0f,
+                    0.52f);
+
+            GUI.DrawTexture(
+                new Rect(
+                    0f,
+                    0f,
+                    Screen.width,
+                    Screen.height),
+                Texture2D.whiteTexture,
+                ScaleMode.StretchToFill);
+
+            GUI.color = oldColor;
+
+            float panelWidth =
+                Mathf.Min(
+                    Screen.width * 0.86f,
+                    620f);
+
+            float panelHeight =
+                Mathf.Clamp(
+                    Screen.height * 0.30f,
+                    300f,
+                    470f);
+
+            float panelX =
+                (Screen.width -
+                 panelWidth) *
+                0.5f;
+
+            float panelY =
+                Mathf.Clamp(
+                    Screen.height * 0.31f,
+                    220f,
+                    Screen.height -
+                    panelHeight -
+                    150f);
+
+            Rect panel =
+                new Rect(
+                    panelX,
+                    panelY,
+                    panelWidth,
+                    panelHeight);
+
+            GUI.Box(
+                panel,
+                string.Empty,
+                resultPanelStyle);
+
+            bool won =
+                session.Status ==
+                StageStatus.Won;
+
+            int titleSize =
+                Mathf.RoundToInt(
                     Mathf.Clamp(
-                        Screen.height * 0.06f,
-                        52f,
-                        84f);
-                float buttonX =
-                    (Screen.width - buttonWidth) * 0.5f;
-                float firstY =
-                    Screen.height * 0.58f;
+                        Screen.width * 0.066f,
+                        26f,
+                        44f));
 
-                string primary =
-                    session.Status == StageStatus.Won
-                        ? (currentLevelIndex + 1 <
-                           PrototypeLevelFactory.LevelCount
-                            ? "NEXT LEVEL"
-                            : "LEVEL SELECT")
-                        : "TRY AGAIN";
+            int subtitleSize =
+                Mathf.RoundToInt(
+                    Mathf.Clamp(
+                        Screen.width * 0.032f,
+                        13f,
+                        21f));
 
-                Color oldBackground =
-                    GUI.backgroundColor;
-                GUI.backgroundColor =
-                    ThemeColor(currentLevelIndex);
+            int buttonSize =
+                Mathf.RoundToInt(
+                    Mathf.Clamp(
+                        Screen.width * 0.040f,
+                        15f,
+                        24f));
 
-                if (GUI.Button(
-                        new Rect(
-                            buttonX,
-                            firstY,
-                            buttonWidth,
-                            buttonHeight),
-                        primary,
-                        buttonStyle))
+            resultTitleStyle.fontSize =
+                titleSize;
+
+            resultSubtitleStyle.fontSize =
+                subtitleSize;
+
+            primaryActionStyle.fontSize =
+                buttonSize;
+
+            secondaryActionStyle.fontSize =
+                Mathf.Max(
+                    12,
+                    buttonSize - 2);
+
+            string title =
+                won
+                    ? "LEVEL CLEAR"
+                    : "TRY AGAIN";
+
+            string subtitle =
+                won
+                    ? PrototypeLevelFactory
+                          .GetTitle(
+                              currentLevelIndex) +
+                      "\n" +
+                      session.MovesRemaining +
+                      " MOVES LEFT"
+                    : PrototypeLevelFactory
+                          .GetTitle(
+                              currentLevelIndex) +
+                      "\nONE MORE RUN";
+
+            GUI.Label(
+                new Rect(
+                    panel.x + 22f,
+                    panel.y + 20f,
+                    panel.width - 44f,
+                    panel.height * 0.22f),
+                title,
+                resultTitleStyle);
+
+            Color lineOld =
+                GUI.color;
+
+            GUI.color =
+                new Color(
+                    0.72f,
+                    0.60f,
+                    0.40f,
+                    0.80f);
+
+            GUI.DrawTexture(
+                new Rect(
+                    panel.x +
+                    (panel.width * 0.20f),
+                    panel.y +
+                    (panel.height * 0.24f),
+                    panel.width * 0.60f,
+                    2f),
+                Texture2D.whiteTexture,
+                ScaleMode.StretchToFill);
+
+            GUI.color = lineOld;
+
+            GUI.Label(
+                new Rect(
+                    panel.x + 26f,
+                    panel.y +
+                    (panel.height * 0.28f),
+                    panel.width - 52f,
+                    panel.height * 0.20f),
+                subtitle,
+                resultSubtitleStyle);
+
+            float buttonWidth =
+                panel.width * 0.72f;
+
+            float buttonHeight =
+                Mathf.Clamp(
+                    panel.height * 0.17f,
+                    58f,
+                    86f);
+
+            float buttonX =
+                panel.x +
+                ((panel.width -
+                  buttonWidth) *
+                 0.5f);
+
+            float primaryY =
+                panel.y +
+                (panel.height * 0.54f);
+
+            string primaryLabel;
+
+            if (won)
+            {
+                primaryLabel =
+                    currentLevelIndex + 1 <
+                    PrototypeLevelFactory
+                        .LevelCount
+                        ? "NEXT LEVEL  >"
+                        : "LEVEL SELECT";
+            }
+            else
+            {
+                primaryLabel =
+                    "RETRY";
+            }
+
+            if (GUI.Button(
+                    new Rect(
+                        buttonX,
+                        primaryY,
+                        buttonWidth,
+                        buttonHeight),
+                    primaryLabel,
+                    primaryActionStyle))
+            {
+                PlayUiConfirm();
+
+                if (won)
                 {
-                    if (session.Status == StageStatus.Won)
-                    {
-                        AdvanceLevel();
-                    }
-                    else
-                    {
-                        StartNewStage();
-                    }
+                    AdvanceLevel();
+                }
+                else
+                {
+                    StartNewStage();
                 }
 
-                GUI.backgroundColor = oldBackground;
+                return;
+            }
 
-                if (GUI.Button(
-                        new Rect(
-                            buttonX,
-                            firstY + buttonHeight + 10f,
-                            buttonWidth,
-                            buttonHeight),
-                        "LEVEL SELECT",
-                        buttonStyle))
-                {
-                    showLevelSelect = true;
-                }
+            float secondaryY =
+                primaryY +
+                buttonHeight +
+                12f;
+
+            if (GUI.Button(
+                    new Rect(
+                        buttonX,
+                        secondaryY,
+                        buttonWidth,
+                        buttonHeight * 0.86f),
+                    "LEVEL SELECT",
+                    secondaryActionStyle))
+            {
+                PlayUiConfirm();
+                showLevelSelect = true;
+            }
+        }
+
+        private void PlayUiConfirm()
+        {
+            if (audioDirector != null)
+            {
+                audioDirector.Play(
+                    XMatchSoundKind.Tap,
+                    0.42f,
+                    1.04f);
             }
         }
 
