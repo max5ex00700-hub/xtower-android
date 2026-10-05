@@ -7,10 +7,10 @@ X MATCH is an original mobile match-3 character puzzle game.
 The repository now contains:
 
 - **v0.01 puzzle core:** complete in source
-- **v0.02 Unity playable-board prototype:** implemented in source
-- **Unity compile / Play Mode / device validation:** still pending
+- **v0.02 Unity playable-board prototype:** verified through Android build and on-device play
+- **v0.03 prototype campaign:** 10 playable stages, special blocks, unlimited test boosters, and first visual-polish pass
 
-The prototype is designed to open in Unity and immediately provide an 8 x 9 playable board with placeholder visuals.
+The prototype now opens into a 10-stage selector. Stages use 7 x 8, 8 x 8, and 8 x 9 boards with distinct goals, move limits, deterministic seeds, special-block creation, and unlimited test boosters.
 
 ## Product direction
 
@@ -53,7 +53,8 @@ swipe
 Implemented in source:
 
 - portrait layout
-- 8 x 9 board
+- 10-stage selector
+- 7 x 8 / 8 x 8 / 8 x 9 boards
 - touch swipe
 - mouse drag for editor testing
 - valid and invalid swap animation
@@ -64,7 +65,14 @@ Implemented in source:
 - collection goals HUD
 - win / fail state
 - dead-board shuffle
-- replay
+- 4-match line blasts
+- 5-match color orb
+- T/L bomb
+- 2 x 2 seeker
+- special-block chain reactions
+- unlimited Hammer / Row / Column / Shuffle test boosters
+- rounded glossy runtime tile styling and per-stage color themes
+- replay / next-level flow
 
 See `docs/UNITY_PROTOTYPE.md`.
 
@@ -86,13 +94,11 @@ docs/
 
 ## Next milestone
 
-v0.03 focuses on production tooling:
+v0.04 focuses on the character/meta vertical slice:
 
-1. serialized level assets
-2. visual level editor
-3. board painter
-4. goal / move-limit authoring
-5. validation
-6. 10 prototype levels
-
-Before expanding content, the v0.02 prototype must be opened in Unity 6000.3.24f1 and verified on-device.
+1. first adult heroine
+2. affection progression
+3. short story episode
+4. clear reward
+5. character/outfit unlock presentation
+6. stronger VFX/audio pass for special blocks
