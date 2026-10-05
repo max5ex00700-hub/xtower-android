@@ -7,6 +7,7 @@ namespace XMatch.Puzzle
     {
         public const float BaseScale = 0.86f;
 
+        private SpriteRenderer glowRenderer;
         private SpriteRenderer spriteRenderer;
         private TextMesh label;
 
@@ -31,6 +32,21 @@ namespace XMatch.Puzzle
             Kind = kind;
             PowerUp = powerUp;
 
+            var glowObject =
+                new GameObject("Glow");
+            glowObject.transform.SetParent(
+                transform,
+                worldPositionStays: false);
+            glowObject.transform.localPosition =
+                new Vector3(0f, 0f, 0.04f);
+            glowObject.transform.localScale =
+                new Vector3(1.12f, 1.12f, 1f);
+
+            glowRenderer =
+                glowObject.AddComponent<SpriteRenderer>();
+            glowRenderer.sprite = sprite;
+            glowRenderer.sortingOrder = 0;
+
             spriteRenderer =
                 gameObject.AddComponent<SpriteRenderer>();
             spriteRenderer.sprite = sprite;
@@ -42,13 +58,14 @@ namespace XMatch.Puzzle
                 transform,
                 worldPositionStays: false);
             labelObject.transform.localPosition =
-                new Vector3(0f, -0.02f, -0.02f);
+                new Vector3(0f, -0.015f, -0.03f);
 
             label = labelObject.AddComponent<TextMesh>();
             label.anchor = TextAnchor.MiddleCenter;
             label.alignment = TextAlignment.Center;
-            label.characterSize = 0.19f;
+            label.characterSize = 0.18f;
             label.fontSize = 64;
+            label.fontStyle = FontStyle.Bold;
             label.color = Color.white;
 
             var renderer =
@@ -57,6 +74,39 @@ namespace XMatch.Puzzle
 
             RefreshAppearance();
             SetScaleFactor(1f);
+        }
+
+        private void Update()
+        {
+            if (glowRenderer == null)
+            {
+                return;
+            }
+
+            if (PowerUp == PowerUpKind.None)
+            {
+                return;
+            }
+
+            float pulse =
+                0.16f +
+                ((Mathf.Sin(
+                    (Time.unscaledTime * 5f) +
+                    (transform.position.x * 0.7f)) +
+                  1f) * 0.07f);
+
+            Color glow =
+                SpecialGlowColor(PowerUp);
+            glow.a = pulse;
+            glowRenderer.color = glow;
+
+            float scale =
+                1.10f +
+                ((Mathf.Sin(Time.unscaledTime * 4f) + 1f) *
+                 0.025f);
+
+            glowRenderer.transform.localScale =
+                new Vector3(scale, scale, 1f);
         }
 
         public void SetPowerUp(
@@ -85,10 +135,30 @@ namespace XMatch.Puzzle
                     ColorFor(Kind, PowerUp);
             }
 
+            if (glowRenderer != null)
+            {
+                Color glow =
+                    PowerUp == PowerUpKind.None
+                        ? new Color(0f, 0f, 0f, 0.22f)
+                        : SpecialGlowColor(PowerUp);
+
+                if (PowerUp != PowerUpKind.None)
+                {
+                    glow.a = 0.20f;
+                }
+
+                glowRenderer.color = glow;
+            }
+
             if (label != null)
             {
                 label.text =
                     ShortName(Kind, PowerUp);
+
+                label.characterSize =
+                    PowerUp == PowerUpKind.None
+                        ? 0.18f
+                        : 0.14f;
             }
         }
 
@@ -103,7 +173,7 @@ namespace XMatch.Puzzle
                 case PowerUpKind.ColumnBlast:
                     return "COL";
                 case PowerUpKind.Bomb:
-                    return "B";
+                    return "BOMB";
                 case PowerUpKind.ColorOrb:
                     return "ORB";
                 case PowerUpKind.Seeker:
@@ -113,11 +183,11 @@ namespace XMatch.Puzzle
             switch (kind)
             {
                 case TileKind.Heart:
-                    return "H";
+                    return "♥";
                 case TileKind.Lips:
-                    return "L";
+                    return "LIP";
                 case TileKind.Diamond:
-                    return "D";
+                    return "◆";
                 case TileKind.Perfume:
                     return "P";
                 case TileKind.Rose:
@@ -136,7 +206,15 @@ namespace XMatch.Puzzle
             if (powerUp == PowerUpKind.ColorOrb ||
                 kind == TileKind.Wild)
             {
-                return new Color(0.16f, 0.16f, 0.22f);
+                float hue =
+                    Mathf.Repeat(
+                        Time.unscaledTime * 0.08f,
+                        1f);
+
+                return Color.HSVToRGB(
+                    hue,
+                    0.68f,
+                    0.95f);
             }
 
             Color baseColor;
@@ -144,22 +222,28 @@ namespace XMatch.Puzzle
             switch (kind)
             {
                 case TileKind.Heart:
-                    baseColor = new Color(0.95f, 0.18f, 0.35f);
+                    baseColor =
+                        new Color(1.00f, 0.20f, 0.38f);
                     break;
                 case TileKind.Lips:
-                    baseColor = new Color(0.88f, 0.20f, 0.65f);
+                    baseColor =
+                        new Color(0.95f, 0.23f, 0.68f);
                     break;
                 case TileKind.Diamond:
-                    baseColor = new Color(0.15f, 0.68f, 0.98f);
+                    baseColor =
+                        new Color(0.18f, 0.76f, 1.00f);
                     break;
                 case TileKind.Perfume:
-                    baseColor = new Color(0.93f, 0.67f, 0.18f);
+                    baseColor =
+                        new Color(1.00f, 0.72f, 0.20f);
                     break;
                 case TileKind.Rose:
-                    baseColor = new Color(0.65f, 0.24f, 0.82f);
+                    baseColor =
+                        new Color(0.72f, 0.29f, 0.93f);
                     break;
                 default:
-                    baseColor = Color.gray;
+                    baseColor =
+                        new Color(0.50f, 0.50f, 0.55f);
                     break;
             }
 
@@ -171,7 +255,27 @@ namespace XMatch.Puzzle
             return Color.Lerp(
                 baseColor,
                 Color.white,
-                0.28f);
+                0.24f);
+        }
+
+        private static Color SpecialGlowColor(
+            PowerUpKind powerUp)
+        {
+            switch (powerUp)
+            {
+                case PowerUpKind.RowBlast:
+                    return new Color(0.25f, 0.95f, 1f, 0.2f);
+                case PowerUpKind.ColumnBlast:
+                    return new Color(1f, 0.62f, 0.18f, 0.2f);
+                case PowerUpKind.Bomb:
+                    return new Color(1f, 0.20f, 0.16f, 0.2f);
+                case PowerUpKind.ColorOrb:
+                    return new Color(0.95f, 0.95f, 1f, 0.2f);
+                case PowerUpKind.Seeker:
+                    return new Color(0.40f, 1f, 0.50f, 0.2f);
+                default:
+                    return new Color(0f, 0f, 0f, 0.22f);
+            }
         }
     }
 }
