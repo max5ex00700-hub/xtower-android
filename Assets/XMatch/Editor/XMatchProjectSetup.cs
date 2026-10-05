@@ -15,8 +15,7 @@ namespace XMatch.Editor
 
         static XMatchProjectSetup()
         {
-            EditorApplication.delayCall +=
-                EnsurePrototypeProject;
+            EnsurePrototypeProject();
         }
 
         [MenuItem(
