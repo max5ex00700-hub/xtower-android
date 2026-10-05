@@ -1320,6 +1320,12 @@ namespace XMatch.Puzzle
 
             EnsureGuiStyles();
 
+            if (showLevelSelect)
+            {
+                DrawLevelSelect();
+                return;
+            }
+
             int titleSize =
                 Mathf.RoundToInt(
                     Mathf.Clamp(
@@ -1356,6 +1362,14 @@ namespace XMatch.Puzzle
                     112f,
                     190f);
 
+            Color previousBackground =
+                GUI.backgroundColor;
+            GUI.backgroundColor =
+                Color.Lerp(
+                    ThemeColor(currentLevelIndex),
+                    new Color(0.12f, 0.08f, 0.18f),
+                    0.55f);
+
             GUI.Box(
                 new Rect(
                     margin,
@@ -1364,13 +1378,15 @@ namespace XMatch.Puzzle
                     panelHeight),
                 string.Empty);
 
+            GUI.backgroundColor = previousBackground;
+
             GUI.Label(
                 new Rect(
                     margin + 16f,
                     margin + 8f,
                     panelWidth * 0.48f,
                     panelHeight * 0.42f),
-                "X MATCH",
+                $"X MATCH  {currentLevelIndex + 1}/{PrototypeLevelFactory.LevelCount}",
                 titleStyle);
 
             GUI.Label(
@@ -1385,13 +1401,18 @@ namespace XMatch.Puzzle
             var goalsText =
                 new StringBuilder();
 
+            goalsText.Append(
+                PrototypeLevelFactory.GetTitle(
+                    currentLevelIndex));
+            goalsText.Append("  |  ");
+
             for (int i = 0;
                  i < session.Goals.Count;
                  i++)
             {
                 if (i > 0)
                 {
-                    goalsText.Append("    ");
+                    goalsText.Append("   ");
                 }
 
                 GoalProgress goal =
@@ -1470,22 +1491,198 @@ namespace XMatch.Puzzle
                         360f);
                 float buttonHeight =
                     Mathf.Clamp(
-                        Screen.height * 0.065f,
-                        56f,
-                        90f);
+                        Screen.height * 0.06f,
+                        52f,
+                        84f);
+                float buttonX =
+                    (Screen.width - buttonWidth) * 0.5f;
+                float firstY =
+                    Screen.height * 0.58f;
+
+                string primary =
+                    session.Status == StageStatus.Won
+                        ? (currentLevelIndex + 1 <
+                           PrototypeLevelFactory.LevelCount
+                            ? "NEXT LEVEL"
+                            : "LEVEL SELECT")
+                        : "TRY AGAIN";
+
+                Color oldBackground =
+                    GUI.backgroundColor;
+                GUI.backgroundColor =
+                    ThemeColor(currentLevelIndex);
 
                 if (GUI.Button(
                         new Rect(
-                            (Screen.width - buttonWidth) * 0.5f,
-                            Screen.height * 0.58f,
+                            buttonX,
+                            firstY,
                             buttonWidth,
                             buttonHeight),
-                        "PLAY AGAIN",
+                        primary,
                         buttonStyle))
                 {
-                    StartNewStage();
+                    if (session.Status == StageStatus.Won)
+                    {
+                        AdvanceLevel();
+                    }
+                    else
+                    {
+                        StartNewStage();
+                    }
+                }
+
+                GUI.backgroundColor = oldBackground;
+
+                if (GUI.Button(
+                        new Rect(
+                            buttonX,
+                            firstY + buttonHeight + 10f,
+                            buttonWidth,
+                            buttonHeight),
+                        "LEVEL SELECT",
+                        buttonStyle))
+                {
+                    showLevelSelect = true;
                 }
             }
+        }
+
+        private void DrawLevelSelect()
+        {
+            Color accent =
+                ThemeColor(currentLevelIndex);
+            Color oldBackground =
+                GUI.backgroundColor;
+
+            GUI.backgroundColor =
+                Color.Lerp(
+                    accent,
+                    new Color(0.08f, 0.05f, 0.13f),
+                    0.45f);
+
+            float margin =
+                Mathf.Max(16f, Screen.width * 0.045f);
+            float width =
+                Screen.width - (margin * 2f);
+            float height =
+                Screen.height - (margin * 2f);
+
+            GUI.Box(
+                new Rect(
+                    margin,
+                    margin,
+                    width,
+                    height),
+                string.Empty);
+
+            GUI.backgroundColor = oldBackground;
+
+            int oldTitleSize = titleStyle.fontSize;
+            int oldGoalSize = goalStyle.fontSize;
+            int oldButtonSize = buttonStyle.fontSize;
+
+            titleStyle.fontSize =
+                Mathf.RoundToInt(
+                    Mathf.Clamp(
+                        Screen.width * 0.075f,
+                        24f,
+                        44f));
+            titleStyle.alignment =
+                TextAnchor.MiddleCenter;
+
+            goalStyle.fontSize =
+                Mathf.RoundToInt(
+                    Mathf.Clamp(
+                        Screen.width * 0.032f,
+                        12f,
+                        20f));
+            goalStyle.alignment =
+                TextAnchor.MiddleCenter;
+
+            buttonStyle.fontSize =
+                Mathf.RoundToInt(
+                    Mathf.Clamp(
+                        Screen.width * 0.030f,
+                        11f,
+                        19f));
+
+            GUI.Label(
+                new Rect(
+                    margin + 12f,
+                    margin + 12f,
+                    width - 24f,
+                    58f),
+                "X MATCH  ·  10 STAGES",
+                titleStyle);
+
+            GUI.Label(
+                new Rect(
+                    margin + 12f,
+                    margin + 62f,
+                    width - 24f,
+                    42f),
+                "SPECIAL BLOCK LAB · BOOSTERS ∞",
+                goalStyle);
+
+            float gridTop =
+                margin + 116f;
+            float gap =
+                Mathf.Max(8f, Screen.width * 0.018f);
+            float buttonWidth =
+                (width - 36f - gap) * 0.5f;
+            float availableHeight =
+                height - 142f;
+            float buttonHeight =
+                (availableHeight - (gap * 4f)) / 5f;
+
+            for (int i = 0;
+                 i < PrototypeLevelFactory.LevelCount;
+                 i++)
+            {
+                int column = i % 2;
+                int row = i / 2;
+
+                Rect rect =
+                    new Rect(
+                        margin + 18f +
+                        (column * (buttonWidth + gap)),
+                        gridTop +
+                        (row * (buttonHeight + gap)),
+                        buttonWidth,
+                        buttonHeight);
+
+                GUI.backgroundColor =
+                    i == currentLevelIndex
+                        ? ThemeColor(i)
+                        : Color.Lerp(
+                            ThemeColor(i),
+                            Color.gray,
+                            0.45f);
+
+                string label =
+                    $"{i + 1:00}  " +
+                    PrototypeLevelFactory.GetTitle(i) +
+                    "\n" +
+                    PrototypeLevelFactory.GetHint(i);
+
+                if (GUI.Button(
+                        rect,
+                        label,
+                        buttonStyle))
+                {
+                    showLevelSelect = false;
+                    StartLevel(i);
+                }
+            }
+
+            GUI.backgroundColor = oldBackground;
+            titleStyle.fontSize = oldTitleSize;
+            titleStyle.alignment =
+                TextAnchor.MiddleLeft;
+            goalStyle.fontSize = oldGoalSize;
+            goalStyle.alignment =
+                TextAnchor.MiddleLeft;
+            buttonStyle.fontSize = oldButtonSize;
         }
 
         private void DrawBoosterBar()
@@ -1636,6 +1833,36 @@ namespace XMatch.Puzzle
                     return "SEEKER!";
                 default:
                     return string.Empty;
+            }
+        }
+
+        private static Color ThemeColor(
+            int levelIndex)
+        {
+            switch (levelIndex)
+            {
+                case 0:
+                    return new Color(0.98f, 0.22f, 0.43f);
+                case 1:
+                    return new Color(0.78f, 0.20f, 0.62f);
+                case 2:
+                    return new Color(0.20f, 0.68f, 1.00f);
+                case 3:
+                    return new Color(1.00f, 0.48f, 0.18f);
+                case 4:
+                    return new Color(0.55f, 0.30f, 1.00f);
+                case 5:
+                    return new Color(1.00f, 0.22f, 0.18f);
+                case 6:
+                    return new Color(0.22f, 0.88f, 0.54f);
+                case 7:
+                    return new Color(0.24f, 0.78f, 0.92f);
+                case 8:
+                    return new Color(0.92f, 0.28f, 0.82f);
+                case 9:
+                    return new Color(1.00f, 0.72f, 0.18f);
+                default:
+                    return new Color(0.78f, 0.28f, 0.82f);
             }
         }
 
