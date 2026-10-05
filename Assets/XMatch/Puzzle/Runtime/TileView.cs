@@ -11,17 +11,29 @@ namespace XMatch.Puzzle
         private TextMesh label;
 
         public TileKind Kind { get; private set; }
+        public PowerUpKind PowerUp { get; private set; }
 
         public void Initialize(
             TileKind kind,
             Sprite sprite)
         {
+            Initialize(
+                kind,
+                PowerUpKind.None,
+                sprite);
+        }
+
+        public void Initialize(
+            TileKind kind,
+            PowerUpKind powerUp,
+            Sprite sprite)
+        {
             Kind = kind;
+            PowerUp = powerUp;
 
             spriteRenderer =
                 gameObject.AddComponent<SpriteRenderer>();
             spriteRenderer.sprite = sprite;
-            spriteRenderer.color = ColorFor(kind);
             spriteRenderer.sortingOrder = 1;
 
             var labelObject =
@@ -33,10 +45,9 @@ namespace XMatch.Puzzle
                 new Vector3(0f, -0.02f, -0.02f);
 
             label = labelObject.AddComponent<TextMesh>();
-            label.text = ShortName(kind);
             label.anchor = TextAnchor.MiddleCenter;
             label.alignment = TextAlignment.Center;
-            label.characterSize = 0.22f;
+            label.characterSize = 0.19f;
             label.fontSize = 64;
             label.color = Color.white;
 
@@ -44,7 +55,17 @@ namespace XMatch.Puzzle
                 labelObject.GetComponent<MeshRenderer>();
             renderer.sortingOrder = 2;
 
+            RefreshAppearance();
             SetScaleFactor(1f);
+        }
+
+        public void SetPowerUp(
+            TileKind kind,
+            PowerUpKind powerUp)
+        {
+            Kind = kind;
+            PowerUp = powerUp;
+            RefreshAppearance();
         }
 
         public void SetScaleFactor(float factor)
@@ -56,8 +77,39 @@ namespace XMatch.Puzzle
                 new Vector3(scale, scale, 1f);
         }
 
-        private static string ShortName(TileKind kind)
+        private void RefreshAppearance()
         {
+            if (spriteRenderer != null)
+            {
+                spriteRenderer.color =
+                    ColorFor(Kind, PowerUp);
+            }
+
+            if (label != null)
+            {
+                label.text =
+                    ShortName(Kind, PowerUp);
+            }
+        }
+
+        private static string ShortName(
+            TileKind kind,
+            PowerUpKind powerUp)
+        {
+            switch (powerUp)
+            {
+                case PowerUpKind.RowBlast:
+                    return "ROW";
+                case PowerUpKind.ColumnBlast:
+                    return "COL";
+                case PowerUpKind.Bomb:
+                    return "B";
+                case PowerUpKind.ColorOrb:
+                    return "ORB";
+                case PowerUpKind.Seeker:
+                    return "GO";
+            }
+
             switch (kind)
             {
                 case TileKind.Heart:
@@ -70,28 +122,56 @@ namespace XMatch.Puzzle
                     return "P";
                 case TileKind.Rose:
                     return "R";
+                case TileKind.Wild:
+                    return "ORB";
                 default:
                     return "?";
             }
         }
 
-        private static Color ColorFor(TileKind kind)
+        private static Color ColorFor(
+            TileKind kind,
+            PowerUpKind powerUp)
         {
+            if (powerUp == PowerUpKind.ColorOrb ||
+                kind == TileKind.Wild)
+            {
+                return new Color(0.16f, 0.16f, 0.22f);
+            }
+
+            Color baseColor;
+
             switch (kind)
             {
                 case TileKind.Heart:
-                    return new Color(0.95f, 0.18f, 0.35f);
+                    baseColor = new Color(0.95f, 0.18f, 0.35f);
+                    break;
                 case TileKind.Lips:
-                    return new Color(0.88f, 0.20f, 0.65f);
+                    baseColor = new Color(0.88f, 0.20f, 0.65f);
+                    break;
                 case TileKind.Diamond:
-                    return new Color(0.15f, 0.68f, 0.98f);
+                    baseColor = new Color(0.15f, 0.68f, 0.98f);
+                    break;
                 case TileKind.Perfume:
-                    return new Color(0.93f, 0.67f, 0.18f);
+                    baseColor = new Color(0.93f, 0.67f, 0.18f);
+                    break;
                 case TileKind.Rose:
-                    return new Color(0.65f, 0.24f, 0.82f);
+                    baseColor = new Color(0.65f, 0.24f, 0.82f);
+                    break;
                 default:
-                    return Color.gray;
+                    baseColor = Color.gray;
+                    break;
             }
+
+            if (powerUp == PowerUpKind.None)
+            {
+                return baseColor;
+            }
+
+            return Color.Lerp(
+                baseColor,
+                Color.white,
+                0.28f);
         }
     }
 }
