@@ -8,7 +8,7 @@ namespace XMatch.Puzzle
             RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Bootstrap()
         {
-            if (Object.FindObjectOfType<PuzzleBoardController>() != null)
+            if (Object.FindFirstObjectByType<PuzzleBoardController>() != null)
             {
                 return;
             }
