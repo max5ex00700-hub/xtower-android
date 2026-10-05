@@ -49,6 +49,7 @@ namespace XMatch.Puzzle
 
             EnsureCamera();
             CreateTileSprite();
+            XMatchArtLibrary.Warmup();
             StartLevel(0);
             showLevelSelect = true;
         }
@@ -457,6 +458,10 @@ namespace XMatch.Puzzle
             BoosterKind booster = selectedBooster;
             selectedBooster = BoosterKind.None;
 
+            PlayBoosterEffect(
+                booster,
+                target);
+
             CascadeResult cascades =
                 session.UseBooster(booster, target);
 
@@ -758,6 +763,8 @@ namespace XMatch.Puzzle
             {
                 ClearedTile tile =
                     step.Cleared[i];
+
+                PlayClearEffect(tile);
 
                 TileView view;
 
@@ -1234,10 +1241,228 @@ namespace XMatch.Puzzle
                     creation.Kind,
                     creation.PowerUp);
 
+                PlayVfx(
+                    XMatchVfxKind.MagicCircle,
+                    creation.Position,
+                    0.36f,
+                    new Vector3(1.55f, 1.55f, 1f));
+
                 ShowBanner(
                     PowerUpLabel(creation.PowerUp),
                     0.8f);
             }
+        }
+
+        private void PlayClearEffect(
+            ClearedTile tile)
+        {
+            XMatchVfxKind effect =
+                XMatchVfxKind.PopSmall;
+
+            float duration = 0.28f;
+            Vector3 scale =
+                new Vector3(1.25f, 1.25f, 1f);
+
+            switch (tile.PowerUp)
+            {
+                case PowerUpKind.RowBlast:
+                    effect = XMatchVfxKind.RowBlast;
+                    duration = 0.34f;
+                    scale = new Vector3(4.8f, 1.25f, 1f);
+                    break;
+
+                case PowerUpKind.ColumnBlast:
+                    effect = XMatchVfxKind.ColumnBlast;
+                    duration = 0.34f;
+                    scale = new Vector3(1.25f, 4.8f, 1f);
+                    break;
+
+                case PowerUpKind.Bomb:
+                    effect = XMatchVfxKind.BombBurst;
+                    duration = 0.42f;
+                    scale = new Vector3(2.6f, 2.6f, 1f);
+                    break;
+
+                case PowerUpKind.ColorOrb:
+                    effect = XMatchVfxKind.ColorOrbBurst;
+                    duration = 0.50f;
+                    scale = new Vector3(3.0f, 3.0f, 1f);
+                    break;
+
+                case PowerUpKind.Seeker:
+                    effect = XMatchVfxKind.SeekerDash;
+                    duration = 0.34f;
+                    scale = new Vector3(1.8f, 1.8f, 1f);
+                    break;
+
+                default:
+                    if (tile.Kind == TileKind.Heart)
+                    {
+                        effect = XMatchVfxKind.HeartBurst;
+                        scale = new Vector3(1.40f, 1.40f, 1f);
+                    }
+                    else if (tile.Kind == TileKind.Rose)
+                    {
+                        effect = XMatchVfxKind.RoseBurst;
+                        scale = new Vector3(1.40f, 1.40f, 1f);
+                    }
+                    else
+                    {
+                        effect =
+                            XMatchVfxKind.PopSmall;
+                    }
+                    break;
+            }
+
+            PlayVfx(
+                effect,
+                tile.Position,
+                duration,
+                scale);
+        }
+
+        private void PlayBoosterEffect(
+            BoosterKind booster,
+            BoardPosition target)
+        {
+            XMatchVfxKind effect =
+                XMatchVfxKind.PopBig;
+
+            Vector3 scale =
+                new Vector3(2.0f, 2.0f, 1f);
+
+            switch (booster)
+            {
+                case BoosterKind.RowClear:
+                    effect = XMatchVfxKind.RowBlast;
+                    scale =
+                        new Vector3(4.8f, 1.25f, 1f);
+                    break;
+
+                case BoosterKind.ColumnClear:
+                    effect =
+                        XMatchVfxKind.ColumnBlast;
+                    scale =
+                        new Vector3(1.25f, 4.8f, 1f);
+                    break;
+
+                case BoosterKind.Hammer:
+                    effect = XMatchVfxKind.PopBig;
+                    break;
+            }
+
+            PlayVfx(
+                effect,
+                target,
+                0.36f,
+                scale);
+        }
+
+        private void PlayVfx(
+            XMatchVfxKind effect,
+            BoardPosition position,
+            float duration,
+            Vector3 targetScale)
+        {
+            Sprite sprite =
+                XMatchArtLibrary.GetVfxSprite(effect);
+
+            if (sprite == null)
+            {
+                return;
+            }
+
+            var effectObject =
+                new GameObject(
+                    "FX_" + effect);
+
+            effectObject.transform.SetParent(
+                transform,
+                worldPositionStays: true);
+
+            effectObject.transform.position =
+                BoardToWorld(position) +
+                new Vector3(0f, 0f, -0.25f);
+
+            var renderer =
+                effectObject.AddComponent<SpriteRenderer>();
+
+            renderer.sprite = sprite;
+            renderer.sortingOrder = 30;
+            renderer.color =
+                new Color(1f, 1f, 1f, 0f);
+
+            StartCoroutine(
+                AnimateVfx(
+                    effectObject,
+                    renderer,
+                    duration,
+                    targetScale));
+        }
+
+        private IEnumerator AnimateVfx(
+            GameObject effectObject,
+            SpriteRenderer renderer,
+            float duration,
+            Vector3 targetScale)
+        {
+            float elapsed = 0f;
+
+            Vector3 startScale =
+                targetScale * 0.52f;
+
+            effectObject.transform.localScale =
+                startScale;
+
+            while (elapsed < duration)
+            {
+                elapsed += Time.unscaledDeltaTime;
+
+                float t =
+                    Mathf.Clamp01(elapsed / duration);
+
+                float pop =
+                    1f -
+                    Mathf.Pow(1f - t, 3f);
+
+                float alpha;
+
+                if (t < 0.18f)
+                {
+                    alpha =
+                        Mathf.Clamp01(t / 0.18f);
+                }
+                else
+                {
+                    alpha =
+                        Mathf.Clamp01(
+                            1f -
+                            ((t - 0.18f) / 0.82f));
+                }
+
+                renderer.color =
+                    new Color(
+                        1f,
+                        1f,
+                        1f,
+                        alpha);
+
+                effectObject.transform.localScale =
+                    Vector3.Lerp(
+                        startScale,
+                        targetScale,
+                        pop);
+
+                effectObject.transform.Rotate(
+                    0f,
+                    0f,
+                    42f *
+                    Time.unscaledDeltaTime);
+
+                yield return null;
+            }
+
+            Destroy(effectObject);
         }
 
         private bool IsScreenPointOverBoosterBar(

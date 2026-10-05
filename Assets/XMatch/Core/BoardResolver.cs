@@ -38,8 +38,15 @@ namespace XMatch.Core
                     continue;
                 }
 
+                PowerUpKind powerUp =
+                    board.GetPowerUp(position);
+
                 board.Set(position, TileKind.Empty);
-                cleared.Add(new ClearedTile(kind, position));
+                cleared.Add(
+                    new ClearedTile(
+                        kind,
+                        powerUp,
+                        position));
             }
 
             cleared.Sort(CompareClearedTiles);
