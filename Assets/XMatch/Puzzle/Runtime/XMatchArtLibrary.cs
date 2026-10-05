@@ -41,6 +41,9 @@ namespace XMatch.Puzzle
         private static Texture2D tilesAtlas;
         private static Texture2D vfxAtlas;
         private static Sprite backgroundSprite;
+        private static Texture2D resultPanelTexture;
+        private static Texture2D primaryButtonTexture;
+        private static Texture2D secondaryButtonTexture;
         private static bool attemptedLoad;
 
         public static string LoadError { get; private set; }
@@ -172,6 +175,90 @@ namespace XMatch.Puzzle
 
             boosterSprites[booster] = sprite;
             return sprite;
+        }
+
+        public static Texture2D GetResultPanelTexture()
+        {
+            if (resultPanelTexture == null)
+            {
+                resultPanelTexture =
+                    CreateLuxuryUiTexture(
+                        "XMatch_ResultPanel",
+                        new Color(
+                            0.055f,
+                            0.060f,
+                            0.070f,
+                            0.98f),
+                        new Color(
+                            0.105f,
+                            0.090f,
+                            0.085f,
+                            0.98f),
+                        new Color(
+                            0.64f,
+                            0.53f,
+                            0.36f,
+                            1f),
+                        12f);
+            }
+
+            return resultPanelTexture;
+        }
+
+        public static Texture2D GetPrimaryButtonTexture()
+        {
+            if (primaryButtonTexture == null)
+            {
+                primaryButtonTexture =
+                    CreateLuxuryUiTexture(
+                        "XMatch_PrimaryButton",
+                        new Color(
+                            0.36f,
+                            0.30f,
+                            0.22f,
+                            1f),
+                        new Color(
+                            0.20f,
+                            0.18f,
+                            0.16f,
+                            1f),
+                        new Color(
+                            0.82f,
+                            0.68f,
+                            0.42f,
+                            1f),
+                        16f);
+            }
+
+            return primaryButtonTexture;
+        }
+
+        public static Texture2D GetSecondaryButtonTexture()
+        {
+            if (secondaryButtonTexture == null)
+            {
+                secondaryButtonTexture =
+                    CreateLuxuryUiTexture(
+                        "XMatch_SecondaryButton",
+                        new Color(
+                            0.18f,
+                            0.22f,
+                            0.25f,
+                            1f),
+                        new Color(
+                            0.10f,
+                            0.12f,
+                            0.15f,
+                            1f),
+                        new Color(
+                            0.46f,
+                            0.51f,
+                            0.55f,
+                            1f),
+                        16f);
+            }
+
+            return secondaryButtonTexture;
         }
 
         public static Sprite GetBackgroundSprite()
@@ -1242,6 +1329,167 @@ namespace XMatch.Puzzle
                 cy - 8,
                 2.5f,
                 color);
+        }
+
+        private static Texture2D CreateLuxuryUiTexture(
+            string name,
+            Color top,
+            Color bottom,
+            Color border,
+            float cornerRadius)
+        {
+            const int width = 160;
+            const int height = 80;
+
+            var texture =
+                new Texture2D(
+                    width,
+                    height,
+                    TextureFormat.RGBA32,
+                    false);
+
+            texture.name = name;
+            texture.filterMode = FilterMode.Bilinear;
+            texture.wrapMode = TextureWrapMode.Clamp;
+
+            var pixels =
+                new Color[width * height];
+
+            for (int y = 0;
+                 y < height;
+                 y++)
+            {
+                float t =
+                    y / (float)(height - 1);
+
+                Color fill =
+                    Color.Lerp(
+                        bottom,
+                        top,
+                        t);
+
+                for (int x = 0;
+                     x < width;
+                     x++)
+                {
+                    float edgeDistance =
+                        RoundedRectEdgeDistance(
+                            x,
+                            y,
+                            width,
+                            height,
+                            cornerRadius);
+
+                    int index =
+                        (y * width) + x;
+
+                    if (edgeDistance > 0f)
+                    {
+                        pixels[index] =
+                            new Color(
+                                0f,
+                                0f,
+                                0f,
+                                0f);
+
+                        continue;
+                    }
+
+                    float distanceToBorder =
+                        -edgeDistance;
+
+                    if (distanceToBorder < 2.4f)
+                    {
+                        pixels[index] =
+                            border;
+
+                        continue;
+                    }
+
+                    float highlight =
+                        Mathf.Clamp01(
+                            (y -
+                             (height * 0.60f)) /
+                            (height * 0.40f));
+
+                    Color value =
+                        Color.Lerp(
+                            fill,
+                            Color.Lerp(
+                                fill,
+                                Color.white,
+                                0.08f),
+                            highlight);
+
+                    float sideShade =
+                        Mathf.Abs(
+                            (x /
+                             (float)(width - 1)) -
+                            0.5f) *
+                        2f;
+
+                    value =
+                        Color.Lerp(
+                            value,
+                            value * 0.80f,
+                            sideShade *
+                            sideShade *
+                            0.38f);
+
+                    pixels[index] =
+                        value;
+                }
+            }
+
+            texture.SetPixels(pixels);
+            texture.Apply();
+
+            return texture;
+        }
+
+        private static float RoundedRectEdgeDistance(
+            float x,
+            float y,
+            float width,
+            float height,
+            float radius)
+        {
+            float halfWidth =
+                width * 0.5f;
+
+            float halfHeight =
+                height * 0.5f;
+
+            float px =
+                Mathf.Abs(
+                    x - halfWidth) -
+                (halfWidth - radius);
+
+            float py =
+                Mathf.Abs(
+                    y - halfHeight) -
+                (halfHeight - radius);
+
+            float outsideX =
+                Mathf.Max(px, 0f);
+
+            float outsideY =
+                Mathf.Max(py, 0f);
+
+            float outside =
+                Mathf.Sqrt(
+                    (outsideX * outsideX) +
+                    (outsideY * outsideY));
+
+            float inside =
+                Mathf.Min(
+                    Mathf.Max(px, py),
+                    0f);
+
+            return
+                outside +
+                inside -
+                radius;
         }
 
         private static void AddBokeh(
