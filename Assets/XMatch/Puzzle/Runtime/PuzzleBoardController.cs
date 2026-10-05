@@ -31,6 +31,7 @@ namespace XMatch.Puzzle
         private BoardPosition pointerStartCell;
         private string transientBanner = string.Empty;
         private float bannerUntil;
+        private BoosterKind selectedBooster = BoosterKind.None;
 
         private GUIStyle titleStyle;
         private GUIStyle infoStyle;
@@ -89,6 +90,7 @@ namespace XMatch.Puzzle
             pointerArmed = false;
             transientBanner = string.Empty;
             bannerUntil = 0f;
+            selectedBooster = BoosterKind.None;
 
             ClearVisuals();
 
@@ -193,6 +195,7 @@ namespace XMatch.Puzzle
                     TileView view =
                         CreateTileView(
                             kind,
+                            session.Board.GetPowerUp(position),
                             BoardToWorld(position));
 
                     visuals[position] = view;
@@ -202,6 +205,7 @@ namespace XMatch.Puzzle
 
         private TileView CreateTileView(
             TileKind kind,
+            PowerUpKind powerUp,
             Vector3 worldPosition)
         {
             var tileObject =
@@ -216,7 +220,10 @@ namespace XMatch.Puzzle
 
             TileView view =
                 tileObject.AddComponent<TileView>();
-            view.Initialize(kind, tileSprite);
+            view.Initialize(
+                kind,
+                powerUp,
+                tileSprite);
 
             return view;
         }
@@ -242,6 +249,22 @@ namespace XMatch.Puzzle
             {
                 Touch touch = Input.GetTouch(0);
 
+                if (IsScreenPointOverBoosterBar(touch.position))
+                {
+                    pointerArmed = false;
+                    return;
+                }
+
+                if (selectedBooster != BoosterKind.None)
+                {
+                    if (touch.phase == TouchPhase.Ended)
+                    {
+                        UseSelectedBooster(touch.position);
+                    }
+
+                    return;
+                }
+
                 if (touch.phase == TouchPhase.Began)
                 {
                     ArmPointer(touch.position);
@@ -256,15 +279,86 @@ namespace XMatch.Puzzle
                 return;
             }
 
-            if (Input.GetMouseButtonDown(0))
+            if (selectedBooster != BoosterKind.None)
+            {
+                if (Input.GetMouseButtonUp(0) &&
+                    !IsScreenPointOverBoosterBar(Input.mousePosition))
+                {
+                    UseSelectedBooster(Input.mousePosition);
+                }
+
+                return;
+            }
+
+            if (Input.GetMouseButtonDown(0) &&
+                !IsScreenPointOverBoosterBar(Input.mousePosition))
             {
                 ArmPointer(Input.mousePosition);
             }
 
-            if (Input.GetMouseButtonUp(0))
+            if (Input.GetMouseButtonUp(0) &&
+                !IsScreenPointOverBoosterBar(Input.mousePosition))
             {
                 ReleasePointer(Input.mousePosition);
             }
+        }
+
+        private void UseSelectedBooster(Vector2 screenPosition)
+        {
+            BoardPosition target;
+
+            if (!TryScreenToBoard(screenPosition, out target))
+            {
+                return;
+            }
+
+            BoosterKind booster = selectedBooster;
+            selectedBooster = BoosterKind.None;
+
+            CascadeResult cascades =
+                session.UseBooster(booster, target);
+
+            StartCoroutine(
+                ResolveBoosterRoutine(
+                    booster,
+                    cascades));
+        }
+
+        private IEnumerator ResolveBoosterRoutine(
+            BoosterKind booster,
+            CascadeResult cascades)
+        {
+            inputLocked = true;
+            ShowBanner(
+                BoosterLabel(booster),
+                0.7f);
+
+            for (int i = 0;
+                 i < cascades.Steps.Count;
+                 i++)
+            {
+                CascadeStep step = cascades.Steps[i];
+
+                ApplyCreatedPowerUpVisual(step);
+                yield return AnimateClear(step);
+                yield return AnimateGravity(step);
+                yield return AnimateSpawns(step);
+
+                if (CascadePause > 0f)
+                {
+                    yield return new WaitForSeconds(
+                        CascadePause);
+                }
+            }
+
+            if (session.Status == StageStatus.InProgress &&
+                session.NeedsShuffle)
+            {
+                yield return AnimateShuffle();
+            }
+
+            EnsurePresentationMatchesBoard();
+            inputLocked = false;
         }
 
         private void ArmPointer(Vector2 screenPosition)
@@ -395,6 +489,7 @@ namespace XMatch.Puzzle
                         0.6f);
                 }
 
+                ApplyCreatedPowerUpVisual(step);
                 yield return AnimateClear(step);
                 yield return AnimateGravity(step);
                 yield return AnimateSpawns(step);
@@ -679,6 +774,7 @@ namespace XMatch.Puzzle
                 TileView view =
                     CreateTileView(
                         spawn.Kind,
+                        PowerUpKind.None,
                         start);
 
                 visuals[spawn.Position] = view;
@@ -954,7 +1050,9 @@ namespace XMatch.Puzzle
                                 out view) ||
                             view == null ||
                             view.Kind !=
-                            session.Board.Get(position))
+                            session.Board.Get(position) ||
+                            view.PowerUp !=
+                            session.Board.GetPowerUp(position))
                         {
                             mismatch = true;
                             break;
@@ -970,6 +1068,49 @@ namespace XMatch.Puzzle
                     "BOARD RESYNC",
                     0.8f);
             }
+        }
+
+        private void ApplyCreatedPowerUpVisual(
+            CascadeStep step)
+        {
+            if (!step.CreatedPowerUp.HasValue)
+            {
+                return;
+            }
+
+            PowerUpCreation creation =
+                step.CreatedPowerUp.Value;
+
+            TileView view;
+
+            if (visuals.TryGetValue(
+                    creation.Position,
+                    out view) &&
+                view != null)
+            {
+                view.SetPowerUp(
+                    creation.Kind,
+                    creation.PowerUp);
+
+                ShowBanner(
+                    PowerUpLabel(creation.PowerUp),
+                    0.8f);
+            }
+        }
+
+        private bool IsScreenPointOverBoosterBar(
+            Vector2 screenPosition)
+        {
+            float margin =
+                Mathf.Max(10f, Screen.width * 0.025f);
+            float barHeight =
+                Mathf.Clamp(
+                    Screen.height * 0.075f,
+                    64f,
+                    110f);
+
+            return screenPosition.y <=
+                   barHeight + (margin * 1.5f);
         }
 
         private void ShowBanner(
@@ -1134,6 +1275,8 @@ namespace XMatch.Puzzle
                 goalsText.ToString(),
                 goalStyle);
 
+            DrawBoosterBar();
+
             string status = transientBanner;
 
             if (session.Status == StageStatus.Won)
@@ -1200,6 +1343,156 @@ namespace XMatch.Puzzle
                 {
                     StartNewStage();
                 }
+            }
+        }
+
+        private void DrawBoosterBar()
+        {
+            if (session.Status != StageStatus.InProgress)
+            {
+                return;
+            }
+
+            float margin =
+                Mathf.Max(10f, Screen.width * 0.025f);
+            float barHeight =
+                Mathf.Clamp(
+                    Screen.height * 0.075f,
+                    64f,
+                    110f);
+            float y =
+                Screen.height - barHeight - margin;
+            float gap =
+                Mathf.Max(5f, Screen.width * 0.012f);
+            float totalWidth =
+                Screen.width - (margin * 2f);
+            float buttonWidth =
+                (totalWidth - (gap * 3f)) / 4f;
+
+            int previousFontSize = buttonStyle.fontSize;
+            buttonStyle.fontSize =
+                Mathf.RoundToInt(
+                    Mathf.Clamp(
+                        Screen.width * 0.026f,
+                        10f,
+                        18f));
+
+            DrawBoosterButton(
+                BoosterKind.Hammer,
+                "HAMMER ∞",
+                new Rect(
+                    margin,
+                    y,
+                    buttonWidth,
+                    barHeight));
+
+            DrawBoosterButton(
+                BoosterKind.RowClear,
+                "ROW ∞",
+                new Rect(
+                    margin + buttonWidth + gap,
+                    y,
+                    buttonWidth,
+                    barHeight));
+
+            DrawBoosterButton(
+                BoosterKind.ColumnClear,
+                "COL ∞",
+                new Rect(
+                    margin + ((buttonWidth + gap) * 2f),
+                    y,
+                    buttonWidth,
+                    barHeight));
+
+            if (GUI.Button(
+                    new Rect(
+                        margin + ((buttonWidth + gap) * 3f),
+                        y,
+                        buttonWidth,
+                        barHeight),
+                    "SHUFFLE ∞",
+                    buttonStyle))
+            {
+                selectedBooster = BoosterKind.None;
+
+                if (session.UseShuffleBooster())
+                {
+                    ClearVisuals();
+                    BuildVisuals();
+                    ShowBanner("SHUFFLE ∞", 0.8f);
+                }
+                else
+                {
+                    ShowBanner("SHUFFLE FAILED", 0.8f);
+                }
+            }
+
+            buttonStyle.fontSize = previousFontSize;
+        }
+
+        private void DrawBoosterButton(
+            BoosterKind booster,
+            string label,
+            Rect rect)
+        {
+            string text =
+                selectedBooster == booster
+                    ? "> " + label
+                    : label;
+
+            if (!GUI.Button(rect, text, buttonStyle))
+            {
+                return;
+            }
+
+            if (selectedBooster == booster)
+            {
+                selectedBooster = BoosterKind.None;
+                ShowBanner("BOOSTER OFF", 0.5f);
+                return;
+            }
+
+            selectedBooster = booster;
+            ShowBanner(
+                BoosterLabel(booster) + " : TAP TILE",
+                1.0f);
+        }
+
+        private static string BoosterLabel(
+            BoosterKind booster)
+        {
+            switch (booster)
+            {
+                case BoosterKind.Hammer:
+                    return "HAMMER ∞";
+                case BoosterKind.RowClear:
+                    return "ROW CLEAR ∞";
+                case BoosterKind.ColumnClear:
+                    return "COLUMN CLEAR ∞";
+                case BoosterKind.Shuffle:
+                    return "SHUFFLE ∞";
+                default:
+                    return "BOOSTER";
+            }
+        }
+
+        private static string PowerUpLabel(
+            PowerUpKind powerUp)
+        {
+            switch (powerUp)
+            {
+                case PowerUpKind.RowBlast:
+                    return "ROW BLAST!";
+                case PowerUpKind.ColumnBlast:
+                    return "COLUMN BLAST!";
+                case PowerUpKind.Bomb:
+                    return "BOMB!";
+                case PowerUpKind.ColorOrb:
+                    return "COLOR ORB!";
+                case PowerUpKind.Seeker:
+                    return "SEEKER!";
+                default:
+                    return string.Empty;
             }
         }
 
