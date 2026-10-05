@@ -9,7 +9,7 @@ namespace XMatch.Puzzle
     public sealed class PuzzleBoardController : MonoBehaviour
     {
         private const float CellSpacing = 1f;
-        private const float BoardVerticalOffset = -0.9f;
+        private const float BoardVerticalOffset = -0.25f;
         private const float SwapDuration = 0.13f;
         private const float ClearDuration = 0.12f;
         private const float FallDuration = 0.18f;
@@ -26,6 +26,7 @@ namespace XMatch.Puzzle
         private Sprite tileSprite;
         private Texture2D tileTexture;
         private SpriteRenderer boardBackdrop;
+        private SpriteRenderer backgroundRenderer;
         private int currentLevelIndex;
         private bool showLevelSelect = true;
         private bool inputLocked;
@@ -55,6 +56,7 @@ namespace XMatch.Puzzle
             try
             {
                 EnsureCamera();
+                EnsureBackground();
                 CreateTileSprite();
                 EnsureAudio();
 
@@ -184,9 +186,25 @@ namespace XMatch.Puzzle
 
             boardCamera.backgroundColor =
                 Color.Lerp(
-                    new Color(0.025f, 0.018f, 0.050f),
+                    new Color(
+                        0.030f,
+                        0.035f,
+                        0.045f),
                     accent,
-                    0.10f);
+                    0.045f);
+
+            if (backgroundRenderer != null)
+            {
+                backgroundRenderer.color =
+                    Color.Lerp(
+                        new Color(
+                            0.84f,
+                            0.86f,
+                            0.90f,
+                            1f),
+                        accent,
+                        0.06f);
+            }
         }
 
         private void EnsureBoardBackdrop()
@@ -224,6 +242,108 @@ namespace XMatch.Puzzle
                     accent.g * 0.22f,
                     accent.b * 0.28f,
                     0.92f);
+        }
+
+        private void EnsureBackground()
+        {
+            if (backgroundRenderer != null)
+            {
+                FitBackground();
+                return;
+            }
+
+            Sprite background =
+                XMatchArtLibrary.GetBackgroundSprite();
+
+            if (background == null)
+            {
+                return;
+            }
+
+            var backgroundObject =
+                new GameObject(
+                    "Hotel Night Background");
+
+            backgroundObject.transform.SetParent(
+                transform,
+                worldPositionStays: false);
+
+            backgroundObject.transform.position =
+                new Vector3(
+                    0f,
+                    BoardVerticalOffset,
+                    5f);
+
+            backgroundRenderer =
+                backgroundObject.AddComponent<SpriteRenderer>();
+
+            backgroundRenderer.sprite =
+                background;
+            backgroundRenderer.sortingOrder =
+                -100;
+            backgroundRenderer.color =
+                new Color(
+                    0.88f,
+                    0.88f,
+                    0.92f,
+                    1f);
+
+            FitBackground();
+        }
+
+        private void FitBackground()
+        {
+            if (backgroundRenderer == null ||
+                boardCamera == null ||
+                backgroundRenderer.sprite == null)
+            {
+                return;
+            }
+
+            float worldHeight =
+                boardCamera.orthographicSize *
+                2f;
+
+            float worldWidth =
+                worldHeight *
+                Mathf.Max(
+                    0.35f,
+                    boardCamera.aspect);
+
+            Vector2 spriteSize =
+                backgroundRenderer
+                    .sprite
+                    .bounds
+                    .size;
+
+            float scale =
+                Mathf.Max(
+                    worldWidth /
+                    Mathf.Max(
+                        0.01f,
+                        spriteSize.x),
+                    worldHeight /
+                    Mathf.Max(
+                        0.01f,
+                        spriteSize.y));
+
+            scale *= 1.08f;
+
+            backgroundRenderer
+                .transform
+                .localScale =
+                    new Vector3(
+                        scale,
+                        scale,
+                        1f);
+
+            backgroundRenderer
+                .transform
+                .position =
+                    new Vector3(
+                        0f,
+                        BoardVerticalOffset,
+                        5f);
         }
 
         private void EnsureCamera()
@@ -282,8 +402,10 @@ namespace XMatch.Puzzle
 
             boardCamera.orthographicSize =
                 Mathf.Max(
-                    halfBoardHeight + 0.9f,
+                    halfBoardHeight + 0.75f,
                     sizeForWidth);
+
+            FitBackground();
         }
 
         private void CreateTileSprite()
@@ -502,17 +624,97 @@ namespace XMatch.Puzzle
             }
         }
 
-        private void UseSelectedBooster(Vector2 screenPosition)
+        private void UseSelectedBooster(
+            Vector2 screenPosition)
         {
             BoardPosition target;
 
-            if (!TryScreenToBoard(screenPosition, out target))
+            if (!TryScreenToBoard(
+                    screenPosition,
+                    out target))
             {
                 return;
             }
 
-            BoosterKind booster = selectedBooster;
-            selectedBooster = BoosterKind.None;
+            BoosterKind booster =
+                selectedBooster;
+
+            selectedBooster =
+                BoosterKind.None;
+
+            if (booster ==
+                BoosterKind.MagicWand)
+            {
+                PowerUpCreation? creation =
+                    session.UseMagicWandBooster(
+                        target);
+
+                if (!creation.HasValue)
+                {
+                    ShowBanner(
+                        "WAND FAILED",
+                        0.7f);
+                    return;
+                }
+
+                if (audioDirector != null)
+                {
+                    audioDirector.Play(
+                        XMatchSoundKind.Wand,
+                        0.86f);
+                }
+
+                TileView view;
+
+                if (visuals.TryGetValue(
+                        target,
+                        out view) &&
+                    view != null)
+                {
+                    view.SetPowerUp(
+                        creation.Value.Kind,
+                        creation.Value.PowerUp);
+                }
+                else
+                {
+                    RebuildFromLogicalBoard();
+                }
+
+                PlayVfx(
+                    XMatchVfxKind.MagicCircle,
+                    target,
+                    0.48f,
+                    new Vector3(
+                        2.3f,
+                        2.3f,
+                        1f));
+
+                SpawnSparkBurst(
+                    target,
+                    14,
+                    new Color(
+                        0.45f,
+                        0.64f,
+                        0.88f,
+                        1f),
+                    3.2f,
+                    0.48f);
+
+                FlashScreen(
+                    new Color(
+                        0.55f,
+                        0.68f,
+                        0.88f,
+                        1f),
+                    0.20f,
+                    0.16f);
+
+                ShowBanner(
+                    "MAGIC WAND ∞",
+                    0.8f);
+
+                return;
+            }
 
             if (audioDirector != null)
             {
@@ -526,12 +728,89 @@ namespace XMatch.Puzzle
                 target);
 
             CascadeResult cascades =
-                session.UseBooster(booster, target);
+                session.UseBooster(
+                    booster,
+                    target);
 
             StartCoroutine(
                 ResolveBoosterRoutine(
                     booster,
                     cascades));
+        }
+
+        private void UseGiftBooster()
+        {
+            IReadOnlyList<PowerUpCreation>
+                created =
+                    session.UseGiftBooster();
+
+            if (created.Count == 0)
+            {
+                ShowBanner(
+                    "GIFT FAILED",
+                    0.7f);
+                return;
+            }
+
+            if (audioDirector != null)
+            {
+                audioDirector.Play(
+                    XMatchSoundKind.Gift,
+                    0.90f);
+            }
+
+            for (int i = 0;
+                 i < created.Count;
+                 i++)
+            {
+                PowerUpCreation creation =
+                    created[i];
+
+                TileView view;
+
+                if (visuals.TryGetValue(
+                        creation.Position,
+                        out view) &&
+                    view != null)
+                {
+                    view.SetPowerUp(
+                        creation.Kind,
+                        creation.PowerUp);
+                }
+
+                PlayVfx(
+                    XMatchVfxKind.MagicCircle,
+                    creation.Position,
+                    0.42f,
+                    new Vector3(
+                        1.75f,
+                        1.75f,
+                        1f));
+
+                SpawnSparkBurst(
+                    creation.Position,
+                    9,
+                    new Color(
+                        0.78f,
+                        0.66f,
+                        0.43f,
+                        1f),
+                    2.6f,
+                    0.42f);
+            }
+
+            FlashScreen(
+                new Color(
+                    0.78f,
+                    0.66f,
+                    0.43f,
+                    1f),
+                0.22f,
+                0.15f);
+
+            ShowBanner(
+                "SURPRISE GIFT ∞",
+                0.9f);
         }
 
         private IEnumerator ResolveBoosterRoutine(
@@ -741,6 +1020,17 @@ namespace XMatch.Puzzle
                 yield break;
             }
 
+            PowerUpKind fromPowerBefore =
+                session.Board.GetPowerUp(from);
+
+            PowerUpKind toPowerBefore =
+                session.Board.GetPowerUp(to);
+
+            SpecialComboKind specialCombo =
+                PowerUpResolver.GetComboKind(
+                    fromPowerBefore,
+                    toPowerBefore);
+
             StageTurnResult turn =
                 session.TryMove(from, to);
 
@@ -769,6 +1059,15 @@ namespace XMatch.Puzzle
                 audioDirector.Play(
                     XMatchSoundKind.Swap,
                     0.42f);
+            }
+
+            if (specialCombo !=
+                SpecialComboKind.None)
+            {
+                PlaySpecialComboFeedback(
+                    specialCombo,
+                    from,
+                    to);
             }
 
             SwapVisualMapping(
@@ -1715,8 +2014,17 @@ namespace XMatch.Puzzle
         {
             if (audioDirector != null)
             {
-                audioDirector.PlayMatch(
-                    step.ChainNumber);
+                if (step.Cleared.Count > 0)
+                {
+                    audioDirector.PlayTile(
+                        step.Cleared[0].Kind,
+                        step.ChainNumber);
+                }
+                else
+                {
+                    audioDirector.PlayMatch(
+                        step.ChainNumber);
+                }
             }
 
             if (step.ChainNumber <= 1)
@@ -1744,6 +2052,410 @@ namespace XMatch.Puzzle
                         0.06f +
                         (step.ChainNumber * 0.012f),
                         0.14f));
+            }
+        }
+
+        private void PlaySpecialComboFeedback(
+            SpecialComboKind combo,
+            BoardPosition from,
+            BoardPosition to)
+        {
+            if (audioDirector != null)
+            {
+                audioDirector.PlaySpecialCombo(
+                    combo);
+            }
+
+            Color champagne =
+                new Color(
+                    0.80f,
+                    0.67f,
+                    0.44f,
+                    1f);
+
+            Color cool =
+                new Color(
+                    0.40f,
+                    0.68f,
+                    0.78f,
+                    1f);
+
+            Color violet =
+                new Color(
+                    0.56f,
+                    0.48f,
+                    0.72f,
+                    1f);
+
+            switch (combo)
+            {
+                case SpecialComboKind.DoubleRow:
+                    PlayVfx(
+                        XMatchVfxKind.RowBlast,
+                        from,
+                        0.44f,
+                        new Vector3(
+                            session.Board.Width * 1.15f,
+                            1.45f,
+                            1f));
+                    PlayVfx(
+                        XMatchVfxKind.RowBlast,
+                        to,
+                        0.44f,
+                        new Vector3(
+                            session.Board.Width * 1.15f,
+                            1.45f,
+                            1f));
+                    FlashScreen(
+                        cool,
+                        0.22f,
+                        0.18f);
+                    ShowBanner(
+                        "DOUBLE ROW!",
+                        0.9f);
+                    break;
+
+                case SpecialComboKind.DoubleColumn:
+                    PlayVfx(
+                        XMatchVfxKind.ColumnBlast,
+                        from,
+                        0.44f,
+                        new Vector3(
+                            1.45f,
+                            session.Board.Height * 1.15f,
+                            1f));
+                    PlayVfx(
+                        XMatchVfxKind.ColumnBlast,
+                        to,
+                        0.44f,
+                        new Vector3(
+                            1.45f,
+                            session.Board.Height * 1.15f,
+                            1f));
+                    FlashScreen(
+                        champagne,
+                        0.22f,
+                        0.18f);
+                    ShowBanner(
+                        "DOUBLE COLUMN!",
+                        0.9f);
+                    break;
+
+                case SpecialComboKind.CrossBlast:
+                    PlayVfx(
+                        XMatchVfxKind.RowBlast,
+                        to,
+                        0.48f,
+                        new Vector3(
+                            session.Board.Width * 1.18f,
+                            1.55f,
+                            1f));
+                    PlayVfx(
+                        XMatchVfxKind.ColumnBlast,
+                        to,
+                        0.48f,
+                        new Vector3(
+                            1.55f,
+                            session.Board.Height * 1.18f,
+                            1f));
+                    FlashScreen(
+                        new Color(
+                            0.68f,
+                            0.72f,
+                            0.62f,
+                            1f),
+                        0.26f,
+                        0.22f);
+                    ShakeCamera(
+                        0.18f,
+                        0.14f);
+                    ShowBanner(
+                        "CROSS BLAST!",
+                        0.9f);
+                    break;
+
+                case SpecialComboKind.RowBomb:
+                    PlayVfx(
+                        XMatchVfxKind.RowBlast,
+                        to,
+                        0.50f,
+                        new Vector3(
+                            session.Board.Width * 1.20f,
+                            3.20f,
+                            1f));
+                    PlayVfx(
+                        XMatchVfxKind.BombBurst,
+                        to,
+                        0.50f,
+                        new Vector3(
+                            3.0f,
+                            3.0f,
+                            1f));
+                    FlashScreen(
+                        champagne,
+                        0.28f,
+                        0.25f);
+                    ShakeCamera(
+                        0.23f,
+                        0.18f);
+                    ShowBanner(
+                        "ROW MEGA BLAST!",
+                        0.9f);
+                    break;
+
+                case SpecialComboKind.ColumnBomb:
+                    PlayVfx(
+                        XMatchVfxKind.ColumnBlast,
+                        to,
+                        0.50f,
+                        new Vector3(
+                            3.20f,
+                            session.Board.Height * 1.20f,
+                            1f));
+                    PlayVfx(
+                        XMatchVfxKind.BombBurst,
+                        to,
+                        0.50f,
+                        new Vector3(
+                            3.0f,
+                            3.0f,
+                            1f));
+                    FlashScreen(
+                        champagne,
+                        0.28f,
+                        0.25f);
+                    ShakeCamera(
+                        0.23f,
+                        0.18f);
+                    ShowBanner(
+                        "COLUMN MEGA BLAST!",
+                        0.9f);
+                    break;
+
+                case SpecialComboKind.DoubleBomb:
+                    PlayVfx(
+                        XMatchVfxKind.BombBurst,
+                        from,
+                        0.62f,
+                        new Vector3(
+                            4.4f,
+                            4.4f,
+                            1f));
+                    PlayVfx(
+                        XMatchVfxKind.BombBurst,
+                        to,
+                        0.62f,
+                        new Vector3(
+                            4.4f,
+                            4.4f,
+                            1f));
+                    FlashScreen(
+                        champagne,
+                        0.38f,
+                        0.34f);
+                    ShakeCamera(
+                        0.32f,
+                        0.26f);
+                    ShowBanner(
+                        "DOUBLE BOMB!",
+                        1.0f);
+                    break;
+
+                case SpecialComboKind.OrbRow:
+                    PlayVfx(
+                        XMatchVfxKind.ColorOrbBurst,
+                        to,
+                        0.68f,
+                        new Vector3(
+                            4.2f,
+                            4.2f,
+                            1f));
+                    PlayVfx(
+                        XMatchVfxKind.RowBlast,
+                        to,
+                        0.60f,
+                        new Vector3(
+                            session.Board.Width * 1.25f,
+                            1.65f,
+                            1f));
+                    FlashScreen(
+                        cool,
+                        0.36f,
+                        0.32f);
+                    ShowBanner(
+                        "ORB + ROW!",
+                        1.0f);
+                    break;
+
+                case SpecialComboKind.OrbColumn:
+                    PlayVfx(
+                        XMatchVfxKind.ColorOrbBurst,
+                        to,
+                        0.68f,
+                        new Vector3(
+                            4.2f,
+                            4.2f,
+                            1f));
+                    PlayVfx(
+                        XMatchVfxKind.ColumnBlast,
+                        to,
+                        0.60f,
+                        new Vector3(
+                            1.65f,
+                            session.Board.Height * 1.25f,
+                            1f));
+                    FlashScreen(
+                        cool,
+                        0.36f,
+                        0.32f);
+                    ShowBanner(
+                        "ORB + COLUMN!",
+                        1.0f);
+                    break;
+
+                case SpecialComboKind.OrbBomb:
+                    PlayVfx(
+                        XMatchVfxKind.ColorOrbBurst,
+                        to,
+                        0.76f,
+                        new Vector3(
+                            5.0f,
+                            5.0f,
+                            1f));
+                    PlayVfx(
+                        XMatchVfxKind.BombBurst,
+                        to,
+                        0.66f,
+                        new Vector3(
+                            4.2f,
+                            4.2f,
+                            1f));
+                    FlashScreen(
+                        violet,
+                        0.42f,
+                        0.38f);
+                    ShakeCamera(
+                        0.34f,
+                        0.26f);
+                    ShowBanner(
+                        "ORB BOMB!",
+                        1.0f);
+                    break;
+
+                case SpecialComboKind.OrbSeeker:
+                    PlayVfx(
+                        XMatchVfxKind.ColorOrbBurst,
+                        to,
+                        0.70f,
+                        new Vector3(
+                            4.6f,
+                            4.6f,
+                            1f));
+                    PlayVfx(
+                        XMatchVfxKind.SeekerDash,
+                        to,
+                        0.62f,
+                        new Vector3(
+                            3.2f,
+                            3.2f,
+                            1f));
+                    FlashScreen(
+                        new Color(
+                            0.48f,
+                            0.72f,
+                            0.62f,
+                            1f),
+                        0.34f,
+                        0.28f);
+                    ShowBanner(
+                        "ORB SEEKERS!",
+                        1.0f);
+                    break;
+
+                case SpecialComboKind.DoubleOrb:
+                    PlayVfx(
+                        XMatchVfxKind.ColorOrbBurst,
+                        to,
+                        0.96f,
+                        new Vector3(
+                            7.0f,
+                            7.0f,
+                            1f));
+                    PlayVfx(
+                        XMatchVfxKind.MagicCircle,
+                        to,
+                        1.0f,
+                        new Vector3(
+                            6.2f,
+                            6.2f,
+                            1f));
+                    FlashScreen(
+                        Color.white,
+                        0.50f,
+                        0.46f);
+                    ShakeCamera(
+                        0.40f,
+                        0.30f);
+                    ShowBanner(
+                        "ULTIMATE ORB!",
+                        1.1f);
+                    break;
+
+                case SpecialComboKind.SeekerPair:
+                    PlayVfx(
+                        XMatchVfxKind.SeekerDash,
+                        from,
+                        0.56f,
+                        new Vector3(
+                            2.8f,
+                            2.8f,
+                            1f));
+                    PlayVfx(
+                        XMatchVfxKind.SeekerDash,
+                        to,
+                        0.56f,
+                        new Vector3(
+                            2.8f,
+                            2.8f,
+                            1f));
+                    FlashScreen(
+                        new Color(
+                            0.48f,
+                            0.72f,
+                            0.62f,
+                            1f),
+                        0.22f,
+                        0.18f);
+                    ShowBanner(
+                        "DOUBLE SEEKER!",
+                        0.9f);
+                    break;
+
+                case SpecialComboKind.SeekerWithSpecial:
+                    PlayVfx(
+                        XMatchVfxKind.SeekerDash,
+                        to,
+                        0.52f,
+                        new Vector3(
+                            2.6f,
+                            2.6f,
+                            1f));
+                    PlayVfx(
+                        XMatchVfxKind.PopBig,
+                        to,
+                        0.48f,
+                        new Vector3(
+                            2.8f,
+                            2.8f,
+                            1f));
+                    FlashScreen(
+                        violet,
+                        0.20f,
+                        0.17f);
+                    ShowBanner(
+                        "SEEKER COMBO!",
+                        0.9f);
+                    break;
             }
         }
 
@@ -2418,7 +3130,10 @@ namespace XMatch.Puzzle
             titleStyle.alignment =
                 TextAnchor.MiddleLeft;
             titleStyle.normal.textColor =
-                Color.white;
+                new Color(
+                    0.96f,
+                    0.93f,
+                    0.86f);
 
             infoStyle =
                 new GUIStyle(GUI.skin.label);
@@ -2427,14 +3142,20 @@ namespace XMatch.Puzzle
             infoStyle.alignment =
                 TextAnchor.MiddleRight;
             infoStyle.normal.textColor =
-                new Color(1f, 0.88f, 0.42f);
+                new Color(
+                    0.82f,
+                    0.70f,
+                    0.48f);
 
             goalStyle =
                 new GUIStyle(GUI.skin.label);
             goalStyle.alignment =
                 TextAnchor.MiddleLeft;
             goalStyle.normal.textColor =
-                new Color(0.93f, 0.93f, 0.98f);
+                new Color(
+                    0.86f,
+                    0.84f,
+                    0.80f);
 
             statusStyle =
                 new GUIStyle(GUI.skin.label);
@@ -2569,45 +3290,12 @@ namespace XMatch.Puzzle
                 $"MOVES  {session.MovesRemaining}",
                 infoStyle);
 
-            var goalsText =
-                new StringBuilder();
-
-            goalsText.Append(
-                PrototypeLevelFactory.GetTitle(
-                    currentLevelIndex));
-            goalsText.Append("  |  ");
-
-            for (int i = 0;
-                 i < session.Goals.Count;
-                 i++)
-            {
-                if (i > 0)
-                {
-                    goalsText.Append("   ");
-                }
-
-                GoalProgress goal =
-                    session.Goals[i];
-
-                goalsText.Append(
-                    GoalLabel(
-                        goal.Definition.TileKind));
-                goalsText.Append(' ');
-                goalsText.Append(
-                    goal.CurrentCount);
-                goalsText.Append('/');
-                goalsText.Append(
-                    goal.Definition.TargetCount);
-            }
-
-            GUI.Label(
+            DrawGoalSummary(
                 new Rect(
-                    margin + 16f,
-                    margin + panelHeight * 0.48f,
-                    panelWidth - 32f,
-                    panelHeight * 0.42f),
-                goalsText.ToString(),
-                goalStyle);
+                    margin + 12f,
+                    margin + panelHeight * 0.45f,
+                    panelWidth - 24f,
+                    panelHeight * 0.49f));
 
             DrawBoosterBar();
 
@@ -2717,6 +3405,154 @@ namespace XMatch.Puzzle
                 {
                     showLevelSelect = true;
                 }
+            }
+        }
+
+        private void DrawGoalSummary(
+            Rect rect)
+        {
+            GUIStyle stageStyle =
+                new GUIStyle(goalStyle);
+
+            stageStyle.fontStyle =
+                FontStyle.Bold;
+
+            stageStyle.fontSize =
+                Mathf.RoundToInt(
+                    Mathf.Clamp(
+                        Screen.width * 0.026f,
+                        11f,
+                        18f));
+
+            stageStyle.normal.textColor =
+                new Color(
+                    0.86f,
+                    0.80f,
+                    0.70f);
+
+            float stageWidth =
+                rect.width * 0.34f;
+
+            GUI.Label(
+                new Rect(
+                    rect.x + 4f,
+                    rect.y,
+                    stageWidth - 8f,
+                    rect.height),
+                PrototypeLevelFactory.GetTitle(
+                    currentLevelIndex),
+                stageStyle);
+
+            int count =
+                Mathf.Max(
+                    1,
+                    session.Goals.Count);
+
+            float goalsWidth =
+                rect.width - stageWidth;
+
+            float itemWidth =
+                goalsWidth / count;
+
+            for (int i = 0;
+                 i < session.Goals.Count;
+                 i++)
+            {
+                GoalProgress goal =
+                    session.Goals[i];
+
+                Rect item =
+                    new Rect(
+                        rect.x +
+                        stageWidth +
+                        (itemWidth * i),
+                        rect.y,
+                        itemWidth,
+                        rect.height);
+
+                Color oldBackground =
+                    GUI.backgroundColor;
+
+                GUI.backgroundColor =
+                    new Color(
+                        0.12f,
+                        0.11f,
+                        0.12f,
+                        0.92f);
+
+                GUI.Box(
+                    new Rect(
+                        item.x + 2f,
+                        item.y + 2f,
+                        item.width - 4f,
+                        item.height - 4f),
+                    string.Empty);
+
+                GUI.backgroundColor =
+                    oldBackground;
+
+                Sprite icon =
+                    XMatchArtLibrary
+                        .GetTileSprite(
+                            goal.Definition.TileKind,
+                            PowerUpKind.None);
+
+                float iconSize =
+                    Mathf.Min(
+                        item.height * 0.62f,
+                        item.width * 0.42f);
+
+                if (icon != null)
+                {
+                    GUI.DrawTexture(
+                        new Rect(
+                            item.x + 7f,
+                            item.y +
+                            ((item.height -
+                              iconSize) * 0.5f),
+                            iconSize,
+                            iconSize),
+                        icon.texture,
+                        ScaleMode.ScaleToFit,
+                        true);
+                }
+
+                GUIStyle countStyle =
+                    new GUIStyle(goalStyle);
+
+                countStyle.fontStyle =
+                    FontStyle.Bold;
+
+                countStyle.fontSize =
+                    Mathf.RoundToInt(
+                        Mathf.Clamp(
+                            Screen.width * 0.026f,
+                            11f,
+                            18f));
+
+                countStyle.alignment =
+                    TextAnchor.MiddleCenter;
+
+                countStyle.normal.textColor =
+                    new Color(
+                        0.92f,
+                        0.88f,
+                        0.78f);
+
+                GUI.Label(
+                    new Rect(
+                        item.x +
+                        iconSize +
+                        8f,
+                        item.y,
+                        item.width -
+                        iconSize -
+                        12f,
+                        item.height),
+                    goal.CurrentCount +
+                    "/" +
+                    goal.Definition.TargetCount,
+                    countStyle);
             }
         }
 
@@ -2860,73 +3696,170 @@ namespace XMatch.Puzzle
 
         private void DrawBoosterBar()
         {
-            if (session.Status != StageStatus.InProgress ||
+            if (session.Status !=
+                    StageStatus.InProgress ||
                 inputLocked)
             {
                 return;
             }
 
             float margin =
-                Mathf.Max(10f, Screen.width * 0.025f);
+                Mathf.Max(
+                    8f,
+                    Screen.width * 0.018f);
+
             float barHeight =
                 Mathf.Clamp(
-                    Screen.height * 0.075f,
-                    64f,
-                    110f);
-            float y =
-                Screen.height - barHeight - margin;
-            float gap =
-                Mathf.Max(5f, Screen.width * 0.012f);
-            float totalWidth =
-                Screen.width - (margin * 2f);
-            float buttonWidth =
-                (totalWidth - (gap * 3f)) / 4f;
+                    Screen.height * 0.080f,
+                    72f,
+                    116f);
 
-            int previousFontSize = buttonStyle.fontSize;
+            float y =
+                Screen.height -
+                barHeight -
+                margin;
+
+            float gap =
+                Mathf.Max(
+                    4f,
+                    Screen.width * 0.008f);
+
+            float totalWidth =
+                Screen.width -
+                (margin * 2f);
+
+            float buttonWidth =
+                (totalWidth -
+                 (gap * 5f)) /
+                6f;
+
+            int previousFontSize =
+                buttonStyle.fontSize;
+
+            TextAnchor previousAlignment =
+                buttonStyle.alignment;
+
+            ImagePosition previousImagePosition =
+                buttonStyle.imagePosition;
+
             buttonStyle.fontSize =
                 Mathf.RoundToInt(
                     Mathf.Clamp(
-                        Screen.width * 0.026f,
-                        10f,
-                        18f));
+                        Screen.width * 0.020f,
+                        8f,
+                        14f));
 
-            DrawBoosterButton(
+            buttonStyle.alignment =
+                TextAnchor.MiddleCenter;
+
+            buttonStyle.imagePosition =
+                ImagePosition.ImageAbove;
+
+            BoosterKind[] boosters =
+            {
                 BoosterKind.Hammer,
-                "HAMMER ∞",
-                new Rect(
-                    margin,
-                    y,
-                    buttonWidth,
-                    barHeight));
-
-            DrawBoosterButton(
                 BoosterKind.RowClear,
-                "ROW ∞",
-                new Rect(
-                    margin + buttonWidth + gap,
-                    y,
-                    buttonWidth,
-                    barHeight));
-
-            DrawBoosterButton(
                 BoosterKind.ColumnClear,
-                "COL ∞",
-                new Rect(
-                    margin + ((buttonWidth + gap) * 2f),
-                    y,
-                    buttonWidth,
-                    barHeight));
+                BoosterKind.Shuffle,
+                BoosterKind.GiftBox,
+                BoosterKind.MagicWand
+            };
 
-            if (GUI.Button(
+            string[] labels =
+            {
+                "HAMMER ∞",
+                "ROW ∞",
+                "COL ∞",
+                "SHUFFLE ∞",
+                "GIFT ∞",
+                "WAND ∞"
+            };
+
+            for (int i = 0;
+                 i < boosters.Length;
+                 i++)
+            {
+                Rect rect =
                     new Rect(
-                        margin + ((buttonWidth + gap) * 3f),
+                        margin +
+                        ((buttonWidth + gap) * i),
                         y,
                         buttonWidth,
-                        barHeight),
-                    "SHUFFLE ∞",
-                    buttonStyle))
+                        barHeight);
+
+                DrawBoosterControl(
+                    boosters[i],
+                    labels[i],
+                    rect);
+            }
+
+            buttonStyle.fontSize =
+                previousFontSize;
+
+            buttonStyle.alignment =
+                previousAlignment;
+
+            buttonStyle.imagePosition =
+                previousImagePosition;
+        }
+
+        private void DrawBoosterControl(
+            BoosterKind booster,
+            string label,
+            Rect rect)
+        {
+            Sprite icon =
+                XMatchArtLibrary
+                    .GetBoosterSprite(
+                        booster);
+
+            string displayLabel =
+                selectedBooster == booster
+                    ? "• " + label
+                    : label;
+
+            GUIContent content =
+                new GUIContent(
+                    displayLabel,
+                    icon != null
+                        ? icon.texture
+                        : null);
+
+            Color oldBackground =
+                GUI.backgroundColor;
+
+            GUI.backgroundColor =
+                selectedBooster == booster
+                    ? new Color(
+                        0.42f,
+                        0.35f,
+                        0.24f,
+                        1f)
+                    : new Color(
+                        0.16f,
+                        0.14f,
+                        0.15f,
+                        1f);
+
+            bool clicked =
+                GUI.Button(
+                    rect,
+                    content,
+                    buttonStyle);
+
+            GUI.backgroundColor =
+                oldBackground;
+
+            if (!clicked)
             {
-                selectedBooster = BoosterKind.None;
+                return;
+            }
+
+            if (booster ==
+                BoosterKind.Shuffle)
+            {
+                selectedBooster =
+                    BoosterKind.None;
 
                 if (session.UseShuffleBooster())
                 {
@@ -2952,48 +3885,57 @@ namespace XMatch.Puzzle
                             1f));
 
                     FlashScreen(
-                        ThemeColor(currentLevelIndex),
+                        ThemeColor(
+                            currentLevelIndex),
                         0.22f,
                         0.18f);
 
                     ClearVisuals();
                     BuildVisuals();
-                    ShowBanner("SHUFFLE ∞", 0.8f);
+
+                    ShowBanner(
+                        "SHUFFLE ∞",
+                        0.8f);
                 }
                 else
                 {
-                    ShowBanner("SHUFFLE FAILED", 0.8f);
+                    ShowBanner(
+                        "SHUFFLE FAILED",
+                        0.8f);
                 }
-            }
 
-            buttonStyle.fontSize = previousFontSize;
-        }
-
-        private void DrawBoosterButton(
-            BoosterKind booster,
-            string label,
-            Rect rect)
-        {
-            string text =
-                selectedBooster == booster
-                    ? "> " + label
-                    : label;
-
-            if (!GUI.Button(rect, text, buttonStyle))
-            {
                 return;
             }
 
-            if (selectedBooster == booster)
+            if (booster ==
+                BoosterKind.GiftBox)
             {
-                selectedBooster = BoosterKind.None;
-                ShowBanner("BOOSTER OFF", 0.5f);
+                selectedBooster =
+                    BoosterKind.None;
+
+                UseGiftBooster();
                 return;
             }
 
-            selectedBooster = booster;
+            if (selectedBooster ==
+                booster)
+            {
+                selectedBooster =
+                    BoosterKind.None;
+
+                ShowBanner(
+                    "BOOSTER OFF",
+                    0.5f);
+
+                return;
+            }
+
+            selectedBooster =
+                booster;
+
             ShowBanner(
-                BoosterLabel(booster) + " : TAP TILE",
+                BoosterLabel(booster) +
+                " : TAP TILE",
                 1.0f);
         }
 
@@ -3010,6 +3952,10 @@ namespace XMatch.Puzzle
                     return "COLUMN CLEAR ∞";
                 case BoosterKind.Shuffle:
                     return "SHUFFLE ∞";
+                case BoosterKind.GiftBox:
+                    return "SURPRISE GIFT ∞";
+                case BoosterKind.MagicWand:
+                    return "MAGIC WAND ∞";
                 default:
                     return "BOOSTER";
             }
@@ -3041,27 +3987,60 @@ namespace XMatch.Puzzle
             switch (levelIndex)
             {
                 case 0:
-                    return new Color(0.98f, 0.22f, 0.43f);
+                    return new Color(
+                        0.54f,
+                        0.44f,
+                        0.32f);
                 case 1:
-                    return new Color(0.78f, 0.20f, 0.62f);
+                    return new Color(
+                        0.38f,
+                        0.43f,
+                        0.50f);
                 case 2:
-                    return new Color(0.20f, 0.68f, 1.00f);
+                    return new Color(
+                        0.34f,
+                        0.52f,
+                        0.55f);
                 case 3:
-                    return new Color(1.00f, 0.48f, 0.18f);
+                    return new Color(
+                        0.50f,
+                        0.47f,
+                        0.34f);
                 case 4:
-                    return new Color(0.55f, 0.30f, 1.00f);
+                    return new Color(
+                        0.45f,
+                        0.40f,
+                        0.54f);
                 case 5:
-                    return new Color(1.00f, 0.22f, 0.18f);
+                    return new Color(
+                        0.52f,
+                        0.40f,
+                        0.32f);
                 case 6:
-                    return new Color(0.22f, 0.88f, 0.54f);
+                    return new Color(
+                        0.36f,
+                        0.52f,
+                        0.43f);
                 case 7:
-                    return new Color(0.24f, 0.78f, 0.92f);
+                    return new Color(
+                        0.38f,
+                        0.50f,
+                        0.58f);
                 case 8:
-                    return new Color(0.92f, 0.28f, 0.82f);
+                    return new Color(
+                        0.48f,
+                        0.39f,
+                        0.48f);
                 case 9:
-                    return new Color(1.00f, 0.72f, 0.18f);
+                    return new Color(
+                        0.58f,
+                        0.49f,
+                        0.34f);
                 default:
-                    return new Color(0.78f, 0.28f, 0.82f);
+                    return new Color(
+                        0.44f,
+                        0.42f,
+                        0.46f);
             }
         }
 
