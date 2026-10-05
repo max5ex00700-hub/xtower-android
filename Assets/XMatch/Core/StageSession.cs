@@ -133,6 +133,128 @@ namespace XMatch.Core
                 NeedsShuffle);
         }
 
+        public IReadOnlyList<PowerUpCreation>
+            UseGiftBooster()
+        {
+            if (Status !=
+                StageStatus.InProgress)
+            {
+                return
+                    new List<PowerUpCreation>()
+                        .AsReadOnly();
+            }
+
+            var candidates =
+                new List<BoardPosition>();
+
+            for (int y = 0;
+                 y < Board.Height;
+                 y++)
+            {
+                for (int x = 0;
+                     x < Board.Width;
+                     x++)
+                {
+                    var position =
+                        new BoardPosition(x, y);
+
+                    if (Board.Get(position) !=
+                            TileKind.Empty &&
+                        Board.GetPowerUp(position) ==
+                            PowerUpKind.None)
+                    {
+                        candidates.Add(position);
+                    }
+                }
+            }
+
+            var created =
+                new List<PowerUpCreation>();
+
+            if (candidates.Count == 0)
+            {
+                return created.AsReadOnly();
+            }
+
+            PowerUpKind[] gifts =
+            {
+                PowerUpKind.RowBlast,
+                PowerUpKind.Bomb,
+                PowerUpKind.Seeker
+            };
+
+            int seed =
+                unchecked(
+                    Level.RefillSeed +
+                    (MovesRemaining * 31) +
+                    (ShuffleCount * 17));
+
+            int start =
+                (seed & 0x7fffffff) %
+                candidates.Count;
+
+            for (int i = 0;
+                 i < gifts.Length &&
+                 candidates.Count > 0;
+                 i++)
+            {
+                int index =
+                    (start + (i * 7)) %
+                    candidates.Count;
+
+                BoardPosition position =
+                    candidates[index];
+
+                TileKind kind =
+                    Board.Get(position);
+
+                Board.SetPowerUp(
+                    position,
+                    gifts[i]);
+
+                created.Add(
+                    new PowerUpCreation(
+                        position,
+                        kind,
+                        gifts[i]));
+
+                candidates.RemoveAt(index);
+
+                if (candidates.Count > 0)
+                {
+                    start %=
+                        candidates.Count;
+                }
+            }
+
+            return created.AsReadOnly();
+        }
+
+        public PowerUpCreation?
+            UseMagicWandBooster(
+                BoardPosition target)
+        {
+            if (Status !=
+                    StageStatus.InProgress ||
+                !Board.IsInside(target) ||
+                Board.Get(target) ==
+                    TileKind.Empty)
+            {
+                return null;
+            }
+
+            Board.SetCell(
+                target,
+                TileKind.Wild,
+                PowerUpKind.ColorOrb);
+
+            return
+                new PowerUpCreation(
+                    target,
+                    TileKind.Wild,
+                    PowerUpKind.ColorOrb);
+        }
+
         public CascadeResult UseBooster(
             BoosterKind booster,
             BoardPosition target)
