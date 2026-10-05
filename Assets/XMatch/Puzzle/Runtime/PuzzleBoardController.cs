@@ -1348,7 +1348,8 @@ namespace XMatch.Puzzle
 
         private void DrawBoosterBar()
         {
-            if (session.Status != StageStatus.InProgress)
+            if (session.Status != StageStatus.InProgress ||
+                inputLocked)
             {
                 return;
             }
