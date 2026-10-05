@@ -47,11 +47,44 @@ namespace XMatch.Puzzle
             Screen.orientation =
                 ScreenOrientation.Portrait;
 
-            EnsureCamera();
-            CreateTileSprite();
-            XMatchArtLibrary.Warmup();
-            StartLevel(0);
-            showLevelSelect = true;
+            try
+            {
+                EnsureCamera();
+                CreateTileSprite();
+
+                StartLevel(0);
+                showLevelSelect = true;
+
+                XMatchArtLibrary.Warmup();
+
+                if (!string.IsNullOrEmpty(
+                        XMatchArtLibrary.LoadError))
+                {
+                    ShowBanner(
+                        "ART FALLBACK ACTIVE",
+                        2.0f);
+                }
+            }
+            catch (System.Exception exception)
+            {
+                Debug.LogException(exception);
+
+                if (boardCamera == null)
+                {
+                    EnsureCamera();
+                }
+
+                transientBanner =
+                    "STARTUP ERROR: " +
+                    exception.GetType().Name +
+                    " - " +
+                    exception.Message;
+
+                bannerUntil =
+                    float.PositiveInfinity;
+
+                showLevelSelect = false;
+            }
         }
 
         private void Update()
@@ -1538,12 +1571,43 @@ namespace XMatch.Puzzle
 
         private void OnGUI()
         {
+            EnsureGuiStyles();
+
             if (session == null)
             {
+                GUI.Box(
+                    new Rect(
+                        20f,
+                        20f,
+                        Screen.width - 40f,
+                        Mathf.Min(
+                            Screen.height - 40f,
+                            360f)),
+                    string.Empty);
+
+                statusStyle.fontSize =
+                    Mathf.RoundToInt(
+                        Mathf.Clamp(
+                            Screen.width * 0.040f,
+                            15f,
+                            24f));
+
+                GUI.Label(
+                    new Rect(
+                        34f,
+                        34f,
+                        Screen.width - 68f,
+                        Mathf.Min(
+                            Screen.height - 68f,
+                            330f)),
+                    string.IsNullOrEmpty(
+                        transientBanner)
+                        ? "X MATCH STARTUP"
+                        : transientBanner,
+                    statusStyle);
+
                 return;
             }
-
-            EnsureGuiStyles();
 
             if (showLevelSelect)
             {

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using XMatch.Core;
@@ -32,27 +33,20 @@ namespace XMatch.Puzzle
 
         private static Texture2D tilesAtlas;
         private static Texture2D vfxAtlas;
+        private static bool attemptedLoad;
+
+        public static string LoadError { get; private set; }
 
         public static void Warmup()
         {
-            EnsureAtlases();
-
-            GetTileSprite(TileKind.Heart, PowerUpKind.None);
-            GetTileSprite(TileKind.Lips, PowerUpKind.None);
-            GetTileSprite(TileKind.Diamond, PowerUpKind.None);
-            GetTileSprite(TileKind.Perfume, PowerUpKind.None);
-            GetTileSprite(TileKind.Rose, PowerUpKind.None);
-
-            for (int i = 1; i <= 5; i++)
+            try
             {
-                GetTileSprite(
-                    TileKind.Heart,
-                    (PowerUpKind)i);
+                EnsureAtlases();
             }
-
-            for (int i = 0; i < 10; i++)
+            catch (Exception exception)
             {
-                GetVfxSprite((XMatchVfxKind)i);
+                LoadError = exception.Message;
+                Debug.LogException(exception);
             }
         }
 
@@ -60,77 +54,154 @@ namespace XMatch.Puzzle
             TileKind kind,
             PowerUpKind powerUp)
         {
-            EnsureAtlases();
-
-            if (tilesAtlas == null)
+            try
             {
-                return null;
-            }
+                EnsureAtlases();
 
-            int index = TileAtlasIndex(kind, powerUp);
+                if (tilesAtlas == null)
+                {
+                    return null;
+                }
 
-            if (index < 0)
-            {
-                return null;
-            }
+                int index =
+                    TileAtlasIndex(kind, powerUp);
 
-            Sprite sprite;
+                if (index < 0)
+                {
+                    return null;
+                }
 
-            if (tileSprites.TryGetValue(index, out sprite))
-            {
+                Sprite sprite;
+
+                if (tileSprites.TryGetValue(
+                        index,
+                        out sprite))
+                {
+                    return sprite;
+                }
+
+                sprite =
+                    CreateAtlasSprite(
+                        tilesAtlas,
+                        index);
+
+                tileSprites[index] = sprite;
                 return sprite;
             }
-
-            sprite = CreateAtlasSprite(
-                tilesAtlas,
-                index);
-
-            tileSprites[index] = sprite;
-            return sprite;
+            catch (Exception exception)
+            {
+                LoadError = exception.Message;
+                Debug.LogException(exception);
+                return null;
+            }
         }
 
         public static Sprite GetVfxSprite(
             XMatchVfxKind kind)
         {
-            EnsureAtlases();
-
-            if (vfxAtlas == null)
+            try
             {
-                return null;
-            }
+                EnsureAtlases();
 
-            int index = (int)kind;
+                if (vfxAtlas == null)
+                {
+                    return null;
+                }
 
-            Sprite sprite;
+                int index = (int)kind;
 
-            if (vfxSprites.TryGetValue(index, out sprite))
-            {
+                Sprite sprite;
+
+                if (vfxSprites.TryGetValue(
+                        index,
+                        out sprite))
+                {
+                    return sprite;
+                }
+
+                sprite =
+                    CreateAtlasSprite(
+                        vfxAtlas,
+                        index);
+
+                vfxSprites[index] = sprite;
                 return sprite;
             }
-
-            sprite = CreateAtlasSprite(
-                vfxAtlas,
-                index);
-
-            vfxSprites[index] = sprite;
-            return sprite;
+            catch (Exception exception)
+            {
+                LoadError = exception.Message;
+                Debug.LogException(exception);
+                return null;
+            }
         }
 
         private static void EnsureAtlases()
         {
-            if (tilesAtlas == null)
+            if (attemptedLoad)
             {
-                tilesAtlas =
-                    Resources.Load<Texture2D>(
-                        "XMatch/Art/TilesAtlas");
+                return;
             }
 
-            if (vfxAtlas == null)
+            attemptedLoad = true;
+
+            tilesAtlas =
+                LoadTextureFromBytes(
+                    "XMatch/Art/TilesAtlasBytes",
+                    "XMatch_TilesAtlas_Runtime");
+
+            vfxAtlas =
+                LoadTextureFromBytes(
+                    "XMatch/Art/VfxAtlasBytes",
+                    "XMatch_VfxAtlas_Runtime");
+
+            if (tilesAtlas == null)
             {
-                vfxAtlas =
-                    Resources.Load<Texture2D>(
-                        "XMatch/Art/VfxAtlas");
+                LoadError =
+                    "Tiles atlas bytes could not be loaded.";
             }
+            else if (vfxAtlas == null)
+            {
+                LoadError =
+                    "VFX atlas bytes could not be loaded.";
+            }
+        }
+
+        private static Texture2D LoadTextureFromBytes(
+            string resourcePath,
+            string textureName)
+        {
+            TextAsset asset =
+                Resources.Load<TextAsset>(
+                    resourcePath);
+
+            if (asset == null ||
+                asset.bytes == null ||
+                asset.bytes.Length == 0)
+            {
+                return null;
+            }
+
+            var texture =
+                new Texture2D(
+                    2,
+                    2,
+                    TextureFormat.RGBA32,
+                    false);
+
+            texture.name = textureName;
+            texture.filterMode = FilterMode.Bilinear;
+            texture.wrapMode = TextureWrapMode.Clamp;
+
+            if (!ImageConversion.LoadImage(
+                    texture,
+                    asset.bytes,
+                    false))
+            {
+                UnityEngine.Object.Destroy(texture);
+                return null;
+            }
+
+            return texture;
         }
 
         private static int TileAtlasIndex(
@@ -176,7 +247,8 @@ namespace XMatch.Puzzle
         {
             int column = index % Columns;
             int topRow = index / Columns;
-            int unityRow = (Rows - 1) - topRow;
+            int unityRow =
+                (Rows - 1) - topRow;
 
             Rect rect = new Rect(
                 column * CellSize,
@@ -184,13 +256,14 @@ namespace XMatch.Puzzle
                 CellSize,
                 CellSize);
 
-            Sprite sprite = Sprite.Create(
-                texture,
-                rect,
-                new Vector2(0.5f, 0.5f),
-                CellSize,
-                0,
-                SpriteMeshType.FullRect);
+            Sprite sprite =
+                Sprite.Create(
+                    texture,
+                    rect,
+                    new Vector2(0.5f, 0.5f),
+                    CellSize,
+                    0,
+                    SpriteMeshType.FullRect);
 
             sprite.name =
                 texture.name + "_" + index;
