@@ -90,10 +90,28 @@ namespace XMatch.Core
                 return SpecialComboKind.SeekerPair;
             }
 
-            if (a == PowerUpKind.Seeker ||
-                b == PowerUpKind.Seeker)
+            if ((a == PowerUpKind.Seeker &&
+                 b == PowerUpKind.RowBlast) ||
+                (b == PowerUpKind.Seeker &&
+                 a == PowerUpKind.RowBlast))
             {
-                return SpecialComboKind.SeekerWithSpecial;
+                return SpecialComboKind.RowSeeker;
+            }
+
+            if ((a == PowerUpKind.Seeker &&
+                 b == PowerUpKind.ColumnBlast) ||
+                (b == PowerUpKind.Seeker &&
+                 a == PowerUpKind.ColumnBlast))
+            {
+                return SpecialComboKind.ColumnSeeker;
+            }
+
+            if ((a == PowerUpKind.Seeker &&
+                 b == PowerUpKind.Bomb) ||
+                (b == PowerUpKind.Seeker &&
+                 a == PowerUpKind.Bomb))
+            {
+                return SpecialComboKind.BombSeeker;
             }
 
             return SpecialComboKind.None;
@@ -310,29 +328,21 @@ namespace XMatch.Core
             switch (combo)
             {
                 case SpecialComboKind.DoubleRow:
-                    AddRow(
+                    AddRowsAround(
                         board,
                         clearSet,
                         queue,
-                        from.Y);
-                    AddRow(
-                        board,
-                        clearSet,
-                        queue,
-                        to.Y);
+                        to.Y,
+                        1);
                     break;
 
                 case SpecialComboKind.DoubleColumn:
-                    AddColumn(
+                    AddColumnsAround(
                         board,
                         clearSet,
                         queue,
-                        from.X);
-                    AddColumn(
-                        board,
-                        clearSet,
-                        queue,
-                        to.X);
+                        to.X,
+                        1);
                     break;
 
                 case SpecialComboKind.CrossBlast:
@@ -340,79 +350,39 @@ namespace XMatch.Core
                         board,
                         clearSet,
                         queue,
-                        from.Y);
-                    AddRow(
-                        board,
-                        clearSet,
-                        queue,
                         to.Y);
                     AddColumn(
                         board,
                         clearSet,
                         queue,
-                        from.X);
-                    AddColumn(
-                        board,
-                        clearSet,
-                        queue,
                         to.X);
-                    break;
-
-                case SpecialComboKind.RowBomb:
-                {
-                    int centerY =
-                        (from.Y + to.Y) / 2;
-
-                    for (int dy = -1;
-                         dy <= 1;
-                         dy++)
-                    {
-                        int y = centerY + dy;
-
-                        if (y >= 0 &&
-                            y < board.Height)
-                        {
-                            AddRow(
-                                board,
-                                clearSet,
-                                queue,
-                                y);
-                        }
-                    }
-                    break;
-                }
-
-                case SpecialComboKind.ColumnBomb:
-                {
-                    int centerX =
-                        (from.X + to.X) / 2;
-
-                    for (int dx = -1;
-                         dx <= 1;
-                         dx++)
-                    {
-                        int x = centerX + dx;
-
-                        if (x >= 0 &&
-                            x < board.Width)
-                        {
-                            AddColumn(
-                                board,
-                                clearSet,
-                                queue,
-                                x);
-                        }
-                    }
-                    break;
-                }
-
-                case SpecialComboKind.DoubleBomb:
                     AddBomb(
                         board,
                         clearSet,
                         queue,
-                        from,
+                        to,
+                        1);
+                    break;
+
+                case SpecialComboKind.RowBomb:
+                    AddRowsAround(
+                        board,
+                        clearSet,
+                        queue,
+                        to.Y,
                         2);
+                    break;
+
+                case SpecialComboKind.ColumnBomb:
+                    AddColumnsAround(
+                        board,
+                        clearSet,
+                        queue,
+                        to.X,
+                        2);
+                    break;
+
+                case SpecialComboKind.DoubleBomb:
                     AddBomb(
                         board,
                         clearSet,
@@ -428,27 +398,35 @@ namespace XMatch.Core
                         6);
                     break;
 
-                case SpecialComboKind.SeekerWithSpecial:
-                {
-                    PowerUpKind other =
-                        fromPower ==
-                        PowerUpKind.Seeker
-                            ? toPower
-                            : fromPower;
-
-                    ApplySinglePowerPattern(
+                case SpecialComboKind.RowSeeker:
+                    AddSeekerPatternTargets(
                         board,
                         clearSet,
                         queue,
                         to,
-                        other);
+                        3,
+                        PowerUpKind.RowBlast);
+                    break;
 
-                    AddFirstTargets(
+                case SpecialComboKind.ColumnSeeker:
+                    AddSeekerPatternTargets(
                         board,
                         clearSet,
-                        3);
+                        queue,
+                        to,
+                        3,
+                        PowerUpKind.ColumnBlast);
                     break;
-                }
+
+                case SpecialComboKind.BombSeeker:
+                    AddSeekerPatternTargets(
+                        board,
+                        clearSet,
+                        queue,
+                        to,
+                        3,
+                        PowerUpKind.Bomb);
+                    break;
             }
         }
 
@@ -546,6 +524,150 @@ namespace XMatch.Core
                         queue,
                         position);
                     break;
+            }
+        }
+
+        private static void AddRowsAround(
+            BoardState board,
+            HashSet<BoardPosition> clearSet,
+            Queue<BoardPosition> queue,
+            int centerY,
+            int radius)
+        {
+            for (int dy = -radius;
+                 dy <= radius;
+                 dy++)
+            {
+                int y =
+                    centerY + dy;
+
+                if (y < 0 ||
+                    y >= board.Height)
+                {
+                    continue;
+                }
+
+                AddRow(
+                    board,
+                    clearSet,
+                    queue,
+                    y);
+            }
+        }
+
+        private static void AddColumnsAround(
+            BoardState board,
+            HashSet<BoardPosition> clearSet,
+            Queue<BoardPosition> queue,
+            int centerX,
+            int radius)
+        {
+            for (int dx = -radius;
+                 dx <= radius;
+                 dx++)
+            {
+                int x =
+                    centerX + dx;
+
+                if (x < 0 ||
+                    x >= board.Width)
+                {
+                    continue;
+                }
+
+                AddColumn(
+                    board,
+                    clearSet,
+                    queue,
+                    x);
+            }
+        }
+
+        private static void AddSeekerPatternTargets(
+            BoardState board,
+            HashSet<BoardPosition> clearSet,
+            Queue<BoardPosition> queue,
+            BoardPosition origin,
+            int targetCount,
+            PowerUpKind pattern)
+        {
+            var candidates =
+                new List<BoardPosition>();
+
+            for (int y = 0;
+                 y < board.Height;
+                 y++)
+            {
+                for (int x = 0;
+                     x < board.Width;
+                     x++)
+                {
+                    var candidate =
+                        new BoardPosition(x, y);
+
+                    if (clearSet.Contains(candidate) ||
+                        board.Get(candidate) ==
+                            TileKind.Empty)
+                    {
+                        continue;
+                    }
+
+                    candidates.Add(candidate);
+                }
+            }
+
+            candidates.Sort(
+                (a, b) =>
+                {
+                    int distanceA =
+                        Math.Abs(a.X - origin.X) +
+                        Math.Abs(a.Y - origin.Y);
+
+                    int distanceB =
+                        Math.Abs(b.X - origin.X) +
+                        Math.Abs(b.Y - origin.Y);
+
+                    int compare =
+                        distanceB.CompareTo(
+                            distanceA);
+
+                    if (compare != 0)
+                    {
+                        return compare;
+                    }
+
+                    compare =
+                        a.Y.CompareTo(b.Y);
+
+                    return compare != 0
+                        ? compare
+                        : a.X.CompareTo(b.X);
+                });
+
+            int count =
+                Math.Min(
+                    targetCount,
+                    candidates.Count);
+
+            for (int i = 0;
+                 i < count;
+                 i++)
+            {
+                BoardPosition target =
+                    candidates[i];
+
+                Add(
+                    board,
+                    clearSet,
+                    queue,
+                    target);
+
+                ApplySinglePowerPattern(
+                    board,
+                    clearSet,
+                    queue,
+                    target,
+                    pattern);
             }
         }
 

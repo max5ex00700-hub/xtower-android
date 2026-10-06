@@ -2436,30 +2436,91 @@ namespace XMatch.Puzzle
                         0.9f);
                     break;
 
-                case SpecialComboKind.SeekerWithSpecial:
+                case SpecialComboKind.RowSeeker:
                     PlayVfx(
                         XMatchVfxKind.SeekerDash,
                         to,
-                        0.52f,
+                        0.56f,
                         new Vector3(
-                            2.6f,
-                            2.6f,
+                            2.8f,
+                            2.8f,
                             1f));
                     PlayVfx(
-                        XMatchVfxKind.PopBig,
+                        XMatchVfxKind.RowBlast,
                         to,
-                        0.48f,
+                        0.62f,
+                        new Vector3(
+                            session.Board.Width * 1.22f,
+                            1.8f,
+                            1f));
+                    FlashScreen(
+                        cool,
+                        0.28f,
+                        0.24f);
+                    ShakeCamera(
+                        0.18f,
+                        0.13f);
+                    ShowBanner(
+                        "SEEKER ROW RUSH!",
+                        1.0f);
+                    break;
+
+                case SpecialComboKind.ColumnSeeker:
+                    PlayVfx(
+                        XMatchVfxKind.SeekerDash,
+                        to,
+                        0.56f,
                         new Vector3(
                             2.8f,
                             2.8f,
+                            1f));
+                    PlayVfx(
+                        XMatchVfxKind.ColumnBlast,
+                        to,
+                        0.62f,
+                        new Vector3(
+                            1.8f,
+                            session.Board.Height * 1.22f,
+                            1f));
+                    FlashScreen(
+                        champagne,
+                        0.28f,
+                        0.24f);
+                    ShakeCamera(
+                        0.18f,
+                        0.13f);
+                    ShowBanner(
+                        "SEEKER COLUMN RUSH!",
+                        1.0f);
+                    break;
+
+                case SpecialComboKind.BombSeeker:
+                    PlayVfx(
+                        XMatchVfxKind.SeekerDash,
+                        to,
+                        0.60f,
+                        new Vector3(
+                            3.0f,
+                            3.0f,
+                            1f));
+                    PlayVfx(
+                        XMatchVfxKind.BombBurst,
+                        to,
+                        0.68f,
+                        new Vector3(
+                            4.0f,
+                            4.0f,
                             1f));
                     FlashScreen(
                         violet,
-                        0.20f,
-                        0.17f);
+                        0.34f,
+                        0.30f);
+                    ShakeCamera(
+                        0.28f,
+                        0.22f);
                     ShowBanner(
-                        "SEEKER COMBO!",
-                        0.9f);
+                        "SEEKER BOMB HUNT!",
+                        1.0f);
                     break;
             }
         }

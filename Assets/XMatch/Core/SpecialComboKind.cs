@@ -15,6 +15,8 @@ namespace XMatch.Core
         OrbSeeker = 10,
         DoubleOrb = 11,
         SeekerPair = 12,
-        SeekerWithSpecial = 13
+        RowSeeker = 13,
+        ColumnSeeker = 14,
+        BombSeeker = 15
     }
 }

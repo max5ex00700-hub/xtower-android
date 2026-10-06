@@ -191,10 +191,42 @@ namespace XMatch.Puzzle
 
                 case SpecialComboKind.DoubleBomb:
                 case SpecialComboKind.SeekerPair:
-                case SpecialComboKind.SeekerWithSpecial:
                     Play(
                         XMatchSoundKind.ComboBomb,
                         1f);
+                    break;
+
+                case SpecialComboKind.RowSeeker:
+                    Play(
+                        XMatchSoundKind.ComboCross,
+                        0.88f,
+                        1.08f);
+                    Play(
+                        XMatchSoundKind.Seeker,
+                        0.82f,
+                        1.04f);
+                    break;
+
+                case SpecialComboKind.ColumnSeeker:
+                    Play(
+                        XMatchSoundKind.ComboCross,
+                        0.88f,
+                        0.96f);
+                    Play(
+                        XMatchSoundKind.Seeker,
+                        0.82f,
+                        1.12f);
+                    break;
+
+                case SpecialComboKind.BombSeeker:
+                    Play(
+                        XMatchSoundKind.ComboBomb,
+                        1f,
+                        0.94f);
+                    Play(
+                        XMatchSoundKind.Seeker,
+                        0.78f,
+                        0.98f);
                     break;
 
                 case SpecialComboKind.OrbRow:
