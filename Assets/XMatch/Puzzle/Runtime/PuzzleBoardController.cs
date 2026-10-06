@@ -257,7 +257,8 @@ namespace XMatch.Puzzle
                     frameObject.AddComponent<SpriteRenderer>();
 
                 boardFrame.sprite =
-                    tileSprite;
+                    XMatchArtLibrary
+                        .GetBoardFrameSprite();
 
                 boardFrame.sortingOrder =
                     -12;
@@ -291,21 +292,17 @@ namespace XMatch.Puzzle
 
             boardFrame.transform.localScale =
                 new Vector3(
-                    session.Board.Width + 0.82f,
-                    session.Board.Height + 0.82f,
+                    session.Board.Width + 0.42f,
+                    session.Board.Height + 0.42f,
                     1f);
 
             boardFrame.color =
-                new Color(
-                    0.76f,
-                    0.60f,
-                    0.30f,
-                    0.98f);
+                Color.white;
 
             boardBackdrop.transform.localScale =
                 new Vector3(
-                    session.Board.Width + 0.58f,
-                    session.Board.Height + 0.58f,
+                    session.Board.Width + 0.24f,
+                    session.Board.Height + 0.24f,
                     1f);
 
             Color accent =

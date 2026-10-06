@@ -106,8 +106,8 @@ namespace XMatch.Puzzle
             {
                 case 0:
                     return new LevelSpec(
-                        7,
                         8,
+                        9,
                         18,
                         20261011,
                         910101,
@@ -120,8 +120,8 @@ namespace XMatch.Puzzle
 
                 case 1:
                     return new LevelSpec(
-                        7,
                         8,
+                        9,
                         20,
                         20261012,
                         910102,
@@ -135,7 +135,7 @@ namespace XMatch.Puzzle
                 case 2:
                     return new LevelSpec(
                         8,
-                        8,
+                        9,
                         20,
                         20261013,
                         910103,
