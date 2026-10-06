@@ -3101,15 +3101,19 @@ namespace XMatch.Puzzle
             Vector2 screenPosition)
         {
             float margin =
-                Mathf.Max(10f, Screen.width * 0.025f);
+                Mathf.Max(
+                    8f,
+                    Screen.width * 0.018f);
+
             float barHeight =
                 Mathf.Clamp(
-                    Screen.height * 0.075f,
-                    64f,
-                    110f);
+                    Screen.height * 0.155f,
+                    190f,
+                    248f);
 
             return screenPosition.y <=
-                   barHeight + (margin * 1.5f);
+                   barHeight +
+                   (margin * 1.5f);
         }
 
         private void ShowBanner(
@@ -3317,21 +3321,21 @@ namespace XMatch.Puzzle
             int titleSize =
                 Mathf.RoundToInt(
                     Mathf.Clamp(
-                        Screen.width * 0.07f,
-                        22f,
-                        42f));
+                        Screen.width * 0.082f,
+                        34f,
+                        54f));
             int infoSize =
                 Mathf.RoundToInt(
                     Mathf.Clamp(
-                        Screen.width * 0.045f,
-                        16f,
-                        28f));
+                        Screen.width * 0.058f,
+                        24f,
+                        38f));
             int goalSize =
                 Mathf.RoundToInt(
                     Mathf.Clamp(
-                        Screen.width * 0.035f,
-                        13f,
-                        22f));
+                        Screen.width * 0.046f,
+                        18f,
+                        30f));
 
             titleStyle.fontSize = titleSize;
             infoStyle.fontSize = infoSize;
@@ -3344,11 +3348,22 @@ namespace XMatch.Puzzle
                 Mathf.Max(12f, Screen.width * 0.035f);
             float panelWidth =
                 Screen.width - (margin * 2f);
-            float panelHeight =
+            float headerHeight =
                 Mathf.Clamp(
-                    Screen.height * 0.13f,
-                    112f,
-                    190f);
+                    Screen.height * 0.078f,
+                    96f,
+                    132f);
+
+            float missionGap =
+                Mathf.Max(
+                    8f,
+                    Screen.height * 0.006f);
+
+            float missionHeight =
+                Mathf.Clamp(
+                    Screen.height * 0.105f,
+                    132f,
+                    180f);
 
             Color previousBackground =
                 GUI.backgroundColor;
@@ -3363,35 +3378,58 @@ namespace XMatch.Puzzle
                     margin,
                     margin,
                     panelWidth,
-                    panelHeight),
+                    headerHeight),
                 string.Empty);
 
             GUI.backgroundColor = previousBackground;
 
             GUI.Label(
                 new Rect(
-                    margin + 16f,
-                    margin + 8f,
-                    panelWidth * 0.48f,
-                    panelHeight * 0.42f),
+                    margin + 18f,
+                    margin + 4f,
+                    panelWidth * 0.58f,
+                    headerHeight - 8f),
                 $"X MATCH  {currentLevelIndex + 1}/{PrototypeLevelFactory.LevelCount}",
                 titleStyle);
 
             GUI.Label(
                 new Rect(
-                    margin + panelWidth * 0.46f,
-                    margin + 8f,
-                    panelWidth * 0.5f,
-                    panelHeight * 0.42f),
+                    margin + panelWidth * 0.55f,
+                    margin + 4f,
+                    panelWidth * 0.41f,
+                    headerHeight - 8f),
                 $"MOVES  {session.MovesRemaining}",
                 infoStyle);
 
+            float missionY =
+                margin +
+                headerHeight +
+                missionGap;
+
+            GUI.backgroundColor =
+                new Color(
+                    0.095f,
+                    0.090f,
+                    0.090f,
+                    0.96f);
+
+            GUI.Box(
+                new Rect(
+                    margin,
+                    missionY,
+                    panelWidth,
+                    missionHeight),
+                string.Empty);
+
+            GUI.backgroundColor =
+                previousBackground;
+
             DrawGoalSummary(
                 new Rect(
-                    margin + 12f,
-                    margin + panelHeight * 0.45f,
-                    panelWidth - 24f,
-                    panelHeight * 0.49f));
+                    margin + 10f,
+                    missionY + 8f,
+                    panelWidth - 20f,
+                    missionHeight - 16f));
 
             DrawBoosterBar();
 
@@ -3512,23 +3550,23 @@ namespace XMatch.Puzzle
             int titleSize =
                 Mathf.RoundToInt(
                     Mathf.Clamp(
-                        Screen.width * 0.066f,
-                        26f,
-                        44f));
+                        Screen.width * 0.082f,
+                        34f,
+                        56f));
 
             int subtitleSize =
                 Mathf.RoundToInt(
                     Mathf.Clamp(
-                        Screen.width * 0.032f,
-                        13f,
-                        21f));
+                        Screen.width * 0.042f,
+                        18f,
+                        28f));
 
             int buttonSize =
                 Mathf.RoundToInt(
                     Mathf.Clamp(
-                        Screen.width * 0.040f,
-                        15f,
-                        24f));
+                        Screen.width * 0.052f,
+                        21f,
+                        32f));
 
             resultTitleStyle.fontSize =
                 titleSize;
@@ -3705,9 +3743,9 @@ namespace XMatch.Puzzle
             stageStyle.fontSize =
                 Mathf.RoundToInt(
                     Mathf.Clamp(
-                        Screen.width * 0.026f,
-                        11f,
-                        18f));
+                        Screen.width * 0.038f,
+                        16f,
+                        26f));
 
             stageStyle.normal.textColor =
                 new Color(
@@ -3716,7 +3754,7 @@ namespace XMatch.Puzzle
                     0.70f);
 
             float stageWidth =
-                rect.width * 0.34f;
+                rect.width * 0.28f;
 
             GUI.Label(
                 new Rect(
@@ -3784,8 +3822,8 @@ namespace XMatch.Puzzle
 
                 float iconSize =
                     Mathf.Min(
-                        item.height * 0.62f,
-                        item.width * 0.42f);
+                        item.height * 0.70f,
+                        item.width * 0.48f);
 
                 if (icon != null)
                 {
@@ -3811,9 +3849,9 @@ namespace XMatch.Puzzle
                 countStyle.fontSize =
                     Mathf.RoundToInt(
                         Mathf.Clamp(
-                            Screen.width * 0.026f,
-                            11f,
-                            18f));
+                            Screen.width * 0.040f,
+                            17f,
+                            28f));
 
                 countStyle.alignment =
                     TextAnchor.MiddleCenter;
@@ -3995,9 +4033,9 @@ namespace XMatch.Puzzle
 
             float barHeight =
                 Mathf.Clamp(
-                    Screen.height * 0.080f,
-                    72f,
-                    116f);
+                    Screen.height * 0.155f,
+                    190f,
+                    248f);
 
             float y =
                 Screen.height -
@@ -4006,8 +4044,8 @@ namespace XMatch.Puzzle
 
             float gap =
                 Mathf.Max(
-                    4f,
-                    Screen.width * 0.008f);
+                    7f,
+                    Screen.width * 0.012f);
 
             float totalWidth =
                 Screen.width -
@@ -4015,8 +4053,12 @@ namespace XMatch.Puzzle
 
             float buttonWidth =
                 (totalWidth -
-                 (gap * 5f)) /
-                6f;
+                 (gap * 2f)) /
+                3f;
+
+            float rowHeight =
+                (barHeight - gap) *
+                0.5f;
 
             int previousFontSize =
                 buttonStyle.fontSize;
@@ -4030,9 +4072,9 @@ namespace XMatch.Puzzle
             buttonStyle.fontSize =
                 Mathf.RoundToInt(
                     Mathf.Clamp(
-                        Screen.width * 0.020f,
-                        8f,
-                        14f));
+                        Screen.width * 0.034f,
+                        14f,
+                        22f));
 
             buttonStyle.alignment =
                 TextAnchor.MiddleCenter;
@@ -4064,13 +4106,22 @@ namespace XMatch.Puzzle
                  i < boosters.Length;
                  i++)
             {
+                int column =
+                    i % 3;
+
+                int row =
+                    i / 3;
+
                 Rect rect =
                     new Rect(
                         margin +
-                        ((buttonWidth + gap) * i),
-                        y,
+                        ((buttonWidth + gap) *
+                         column),
+                        y +
+                        ((rowHeight + gap) *
+                         row),
                         buttonWidth,
-                        barHeight);
+                        rowHeight);
 
                 DrawBoosterControl(
                     boosters[i],
