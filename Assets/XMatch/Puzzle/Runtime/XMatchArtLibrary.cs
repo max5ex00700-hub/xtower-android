@@ -48,6 +48,11 @@ namespace XMatch.Puzzle
         private static Texture2D resultPanelTexture;
         private static Texture2D primaryButtonTexture;
         private static Texture2D secondaryButtonTexture;
+        private static Texture2D headerPanelTexture;
+        private static Texture2D missionPanelTexture;
+        private static Texture2D boosterPanelTexture;
+        private static Texture2D boosterButtonTexture;
+        private static Texture2D boosterSelectedButtonTexture;
         private static bool attemptedLoad;
 
         public static string LoadError { get; private set; }
@@ -217,6 +222,146 @@ namespace XMatch.Puzzle
             }
         }
 
+        public static Texture2D GetHeaderPanelTexture()
+        {
+            if (headerPanelTexture == null)
+            {
+                headerPanelTexture =
+                    CreateLuxuryUiTexture(
+                        "XMatch_HeaderPanel",
+                        new Color(
+                            0.16f,
+                            0.12f,
+                            0.29f,
+                            0.99f),
+                        new Color(
+                            0.055f,
+                            0.070f,
+                            0.15f,
+                            0.99f),
+                        new Color(
+                            0.78f,
+                            0.63f,
+                            0.34f,
+                            1f),
+                        18f);
+            }
+
+            return headerPanelTexture;
+        }
+
+        public static Texture2D GetMissionPanelTexture()
+        {
+            if (missionPanelTexture == null)
+            {
+                missionPanelTexture =
+                    CreateLuxuryUiTexture(
+                        "XMatch_MissionPanel",
+                        new Color(
+                            0.11f,
+                            0.10f,
+                            0.23f,
+                            0.98f),
+                        new Color(
+                            0.045f,
+                            0.060f,
+                            0.13f,
+                            0.98f),
+                        new Color(
+                            0.52f,
+                            0.45f,
+                            0.33f,
+                            1f),
+                        16f);
+            }
+
+            return missionPanelTexture;
+        }
+
+        public static Texture2D GetBoosterPanelTexture()
+        {
+            if (boosterPanelTexture == null)
+            {
+                boosterPanelTexture =
+                    CreateLuxuryUiTexture(
+                        "XMatch_BoosterPanel",
+                        new Color(
+                            0.095f,
+                            0.080f,
+                            0.18f,
+                            0.99f),
+                        new Color(
+                            0.035f,
+                            0.045f,
+                            0.095f,
+                            0.99f),
+                        new Color(
+                            0.64f,
+                            0.52f,
+                            0.30f,
+                            1f),
+                        16f);
+            }
+
+            return boosterPanelTexture;
+        }
+
+        public static Texture2D GetBoosterButtonTexture()
+        {
+            if (boosterButtonTexture == null)
+            {
+                boosterButtonTexture =
+                    CreateLuxuryUiTexture(
+                        "XMatch_BoosterButton",
+                        new Color(
+                            0.14f,
+                            0.11f,
+                            0.25f,
+                            1f),
+                        new Color(
+                            0.055f,
+                            0.065f,
+                            0.14f,
+                            1f),
+                        new Color(
+                            0.70f,
+                            0.57f,
+                            0.33f,
+                            1f),
+                        15f);
+            }
+
+            return boosterButtonTexture;
+        }
+
+        public static Texture2D GetBoosterSelectedButtonTexture()
+        {
+            if (boosterSelectedButtonTexture == null)
+            {
+                boosterSelectedButtonTexture =
+                    CreateLuxuryUiTexture(
+                        "XMatch_BoosterSelectedButton",
+                        new Color(
+                            0.23f,
+                            0.18f,
+                            0.38f,
+                            1f),
+                        new Color(
+                            0.095f,
+                            0.095f,
+                            0.20f,
+                            1f),
+                        new Color(
+                            0.96f,
+                            0.76f,
+                            0.32f,
+                            1f),
+                        15f);
+            }
+
+            return boosterSelectedButtonTexture;
+        }
+
         public static Texture2D GetResultPanelTexture()
         {
             if (resultPanelTexture == null)
@@ -330,23 +475,23 @@ namespace XMatch.Puzzle
 
             Color top =
                 new Color(
-                    0.045f,
-                    0.060f,
-                    0.080f,
+                    0.055f,
+                    0.070f,
+                    0.145f,
                     1f);
 
             Color middle =
                 new Color(
-                    0.095f,
-                    0.072f,
-                    0.075f,
+                    0.145f,
+                    0.085f,
+                    0.205f,
                     1f);
 
             Color bottom =
                 new Color(
-                    0.115f,
-                    0.085f,
-                    0.060f,
+                    0.075f,
+                    0.055f,
+                    0.135f,
                     1f);
 
             for (int y = 0;
@@ -380,7 +525,7 @@ namespace XMatch.Puzzle
                     float vignette =
                         Mathf.Lerp(
                             1f,
-                            0.74f,
+                            0.82f,
                             centerDistance *
                             centerDistance);
 
@@ -394,7 +539,7 @@ namespace XMatch.Puzzle
                 pixels,
                 width,
                 height,
-                38,
+                54,
                 20261006);
 
             texture.SetPixels(pixels);
