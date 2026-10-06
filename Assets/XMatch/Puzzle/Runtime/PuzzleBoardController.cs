@@ -76,7 +76,7 @@ namespace XMatch.Puzzle
                 EnsureAudio();
 
                 StartLevel(0);
-                showLevelSelect = true;
+                showLevelSelect = false;
 
                 XMatchArtLibrary.Warmup();
 
