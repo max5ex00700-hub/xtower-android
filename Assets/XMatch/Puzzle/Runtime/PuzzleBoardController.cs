@@ -30,6 +30,7 @@ namespace XMatch.Puzzle
         private Sprite tileSprite;
         private Texture2D tileTexture;
         private SpriteRenderer boardBackdrop;
+        private SpriteRenderer boardFrame;
         private SpriteRenderer backgroundRenderer;
         private int currentLevelIndex;
         private bool showLevelSelect = true;
@@ -56,6 +57,11 @@ namespace XMatch.Puzzle
         private GUIStyle resultSubtitleStyle;
         private GUIStyle primaryActionStyle;
         private GUIStyle secondaryActionStyle;
+        private GUIStyle headerPanelStyle;
+        private GUIStyle missionPanelStyle;
+        private GUIStyle boosterPanelStyle;
+        private GUIStyle boosterButtonStyle;
+        private GUIStyle boosterSelectedStyle;
 
         private void Start()
         {
@@ -223,51 +229,98 @@ namespace XMatch.Puzzle
             {
                 backgroundRenderer.color =
                     Color.Lerp(
-                        new Color(
-                            0.84f,
-                            0.86f,
-                            0.90f,
-                            1f),
+                        Color.white,
                         accent,
-                        0.06f);
+                        0.035f);
             }
         }
 
         private void EnsureBoardBackdrop()
         {
+            if (boardFrame == null)
+            {
+                var frameObject =
+                    new GameObject(
+                        "Board Gold Frame");
+
+                frameObject.transform.SetParent(
+                    transform,
+                    worldPositionStays: false);
+
+                frameObject.transform.localPosition =
+                    new Vector3(
+                        0f,
+                        BoardVerticalOffset,
+                        0.72f);
+
+                boardFrame =
+                    frameObject.AddComponent<SpriteRenderer>();
+
+                boardFrame.sprite =
+                    tileSprite;
+
+                boardFrame.sortingOrder =
+                    -12;
+            }
+
             if (boardBackdrop == null)
             {
                 var backdropObject =
-                    new GameObject("Board Backdrop");
+                    new GameObject(
+                        "Board Backdrop");
+
                 backdropObject.transform.SetParent(
                     transform,
                     worldPositionStays: false);
+
                 backdropObject.transform.localPosition =
                     new Vector3(
                         0f,
                         BoardVerticalOffset,
-                        0.65f);
+                        0.68f);
 
                 boardBackdrop =
                     backdropObject.AddComponent<SpriteRenderer>();
-                boardBackdrop.sprite = tileSprite;
-                boardBackdrop.sortingOrder = -10;
+
+                boardBackdrop.sprite =
+                    tileSprite;
+
+                boardBackdrop.sortingOrder =
+                    -11;
             }
+
+            boardFrame.transform.localScale =
+                new Vector3(
+                    session.Board.Width + 0.82f,
+                    session.Board.Height + 0.82f,
+                    1f);
+
+            boardFrame.color =
+                new Color(
+                    0.76f,
+                    0.60f,
+                    0.30f,
+                    0.98f);
 
             boardBackdrop.transform.localScale =
                 new Vector3(
-                    session.Board.Width + 0.55f,
-                    session.Board.Height + 0.55f,
+                    session.Board.Width + 0.58f,
+                    session.Board.Height + 0.58f,
                     1f);
 
             Color accent =
-                ThemeColor(currentLevelIndex);
+                ThemeColor(
+                    currentLevelIndex);
+
             boardBackdrop.color =
-                new Color(
-                    accent.r * 0.22f,
-                    accent.g * 0.22f,
-                    accent.b * 0.28f,
-                    0.92f);
+                Color.Lerp(
+                    new Color(
+                        0.045f,
+                        0.060f,
+                        0.15f,
+                        0.97f),
+                    accent,
+                    0.13f);
         }
 
         private void EnsureBackground()
@@ -309,9 +362,9 @@ namespace XMatch.Puzzle
                 -100;
             backgroundRenderer.color =
                 new Color(
-                    0.88f,
-                    0.88f,
-                    0.92f,
+                    1f,
+                    1f,
+                    1f,
                     1f);
 
             FitBackground();
@@ -418,17 +471,17 @@ namespace XMatch.Puzzle
 
             float halfBoardWidth =
                 (session.Board.Width * CellSpacing * 0.5f) +
-                0.35f;
+                0.12f;
             float halfBoardHeight =
                 (session.Board.Height * CellSpacing * 0.5f) +
-                0.35f;
+                0.20f;
 
             float sizeForWidth =
                 halfBoardWidth / aspect;
 
             boardCamera.orthographicSize =
                 Mathf.Max(
-                    halfBoardHeight + 0.75f,
+                    halfBoardHeight + 0.45f,
                     sizeForWidth);
 
             FitBackground();
@@ -3445,6 +3498,115 @@ namespace XMatch.Puzzle
                     18,
                     18,
                     18);
+
+            headerPanelStyle =
+                new GUIStyle(
+                    GUI.skin.box);
+
+            headerPanelStyle.normal.background =
+                XMatchArtLibrary
+                    .GetHeaderPanelTexture();
+
+            headerPanelStyle.border =
+                new RectOffset(
+                    20,
+                    20,
+                    20,
+                    20);
+
+            missionPanelStyle =
+                new GUIStyle(
+                    GUI.skin.box);
+
+            missionPanelStyle.normal.background =
+                XMatchArtLibrary
+                    .GetMissionPanelTexture();
+
+            missionPanelStyle.border =
+                new RectOffset(
+                    18,
+                    18,
+                    18,
+                    18);
+
+            boosterPanelStyle =
+                new GUIStyle(
+                    GUI.skin.box);
+
+            boosterPanelStyle.normal.background =
+                XMatchArtLibrary
+                    .GetBoosterPanelTexture();
+
+            boosterPanelStyle.border =
+                new RectOffset(
+                    18,
+                    18,
+                    18,
+                    18);
+
+            boosterButtonStyle =
+                new GUIStyle(
+                    GUI.skin.button);
+
+            boosterButtonStyle.normal.background =
+                XMatchArtLibrary
+                    .GetBoosterButtonTexture();
+
+            boosterButtonStyle.hover.background =
+                boosterButtonStyle
+                    .normal
+                    .background;
+
+            boosterButtonStyle.active.background =
+                boosterButtonStyle
+                    .normal
+                    .background;
+
+            boosterButtonStyle.border =
+                new RectOffset(
+                    16,
+                    16,
+                    16,
+                    16);
+
+            boosterButtonStyle.fontStyle =
+                FontStyle.Bold;
+
+            boosterButtonStyle.alignment =
+                TextAnchor.MiddleCenter;
+
+            boosterButtonStyle.imagePosition =
+                ImagePosition.ImageAbove;
+
+            boosterButtonStyle.normal.textColor =
+                new Color(
+                    0.95f,
+                    0.91f,
+                    0.82f);
+
+            boosterSelectedStyle =
+                new GUIStyle(
+                    boosterButtonStyle);
+
+            boosterSelectedStyle.normal.background =
+                XMatchArtLibrary
+                    .GetBoosterSelectedButtonTexture();
+
+            boosterSelectedStyle.hover.background =
+                boosterSelectedStyle
+                    .normal
+                    .background;
+
+            boosterSelectedStyle.active.background =
+                boosterSelectedStyle
+                    .normal
+                    .background;
+
+            boosterSelectedStyle.normal.textColor =
+                new Color(
+                    1f,
+                    0.88f,
+                    0.48f);
         }
 
         private void OnGUI()
@@ -3542,11 +3704,6 @@ namespace XMatch.Puzzle
 
             Color previousBackground =
                 GUI.backgroundColor;
-            GUI.backgroundColor =
-                Color.Lerp(
-                    ThemeColor(currentLevelIndex),
-                    new Color(0.12f, 0.08f, 0.18f),
-                    0.55f);
 
             GUI.Box(
                 new Rect(
@@ -3554,9 +3711,8 @@ namespace XMatch.Puzzle
                     margin,
                     panelWidth,
                     headerHeight),
-                string.Empty);
-
-            GUI.backgroundColor = previousBackground;
+                string.Empty,
+                headerPanelStyle);
 
             GUI.Label(
                 new Rect(
@@ -3581,20 +3737,14 @@ namespace XMatch.Puzzle
                 headerHeight +
                 missionGap;
 
-            GUI.backgroundColor =
-                new Color(
-                    0.095f,
-                    0.090f,
-                    0.090f,
-                    0.96f);
-
             GUI.Box(
                 new Rect(
                     margin,
                     missionY,
                     panelWidth,
                     missionHeight),
-                string.Empty);
+                string.Empty,
+                missionPanelStyle);
 
             GUI.backgroundColor =
                 previousBackground;
@@ -4000,22 +4150,10 @@ namespace XMatch.Puzzle
                         itemWidth,
                         goalsHeight);
 
-                Color oldBackground =
-                    GUI.backgroundColor;
-
-                GUI.backgroundColor =
-                    new Color(
-                        0.105f,
-                        0.10f,
-                        0.105f,
-                        0.96f);
-
                 GUI.Box(
                     item,
-                    string.Empty);
-
-                GUI.backgroundColor =
-                    oldBackground;
+                    string.Empty,
+                    boosterButtonStyle);
 
                 Sprite icon =
                     XMatchArtLibrary
@@ -4281,6 +4419,20 @@ namespace XMatch.Puzzle
                 (barHeight - gap) *
                 0.5f;
 
+            GUI.Box(
+                new Rect(
+                    margin,
+                    y,
+                    totalWidth,
+                    barHeight),
+                string.Empty,
+                boosterPanelStyle);
+
+            float cardInset =
+                Mathf.Max(
+                    5f,
+                    Screen.width * 0.008f);
+
             int previousFontSize =
                 buttonStyle.fontSize;
 
@@ -4337,12 +4489,16 @@ namespace XMatch.Puzzle
                     new Rect(
                         margin +
                         ((buttonWidth + gap) *
-                         column),
+                         column) +
+                        cardInset,
                         y +
                         ((rowHeight + gap) *
-                         row),
-                        buttonWidth,
-                        rowHeight);
+                         row) +
+                        cardInset,
+                        buttonWidth -
+                        (cardInset * 2f),
+                        rowHeight -
+                        (cardInset * 2f));
 
                 DrawBoosterControl(
                     boosters[i],
@@ -4387,30 +4543,26 @@ namespace XMatch.Puzzle
                         ? icon.texture
                         : null);
 
-            Color oldBackground =
-                GUI.backgroundColor;
+            int boosterFontSize =
+                Mathf.RoundToInt(
+                    Mathf.Clamp(
+                        Screen.width * 0.032f,
+                        13f,
+                        21f));
 
-            GUI.backgroundColor =
-                selectedBooster == booster
-                    ? new Color(
-                        0.42f,
-                        0.35f,
-                        0.24f,
-                        1f)
-                    : new Color(
-                        0.16f,
-                        0.14f,
-                        0.15f,
-                        1f);
+            boosterButtonStyle.fontSize =
+                boosterFontSize;
+
+            boosterSelectedStyle.fontSize =
+                boosterFontSize;
 
             bool clicked =
                 GUI.Button(
                     rect,
                     content,
-                    buttonStyle);
-
-            GUI.backgroundColor =
-                oldBackground;
+                    isSelected
+                        ? boosterSelectedStyle
+                        : boosterButtonStyle);
 
             if (!clicked)
             {
