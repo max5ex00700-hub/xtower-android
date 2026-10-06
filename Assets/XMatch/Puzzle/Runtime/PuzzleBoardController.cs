@@ -21,6 +21,10 @@ namespace XMatch.Puzzle
             visuals =
                 new Dictionary<BoardPosition, TileView>();
 
+        private readonly HashSet<GameObject>
+            activeTransientFx =
+                new HashSet<GameObject>();
+
         private StageSession session;
         private Camera boardCamera;
         private Sprite tileSprite;
@@ -133,6 +137,8 @@ namespace XMatch.Puzzle
             {
                 Destroy(tileTexture);
             }
+
+            ClearTransientFx();
         }
 
         private void StartNewStage()
@@ -148,6 +154,21 @@ namespace XMatch.Puzzle
                 PrototypeLevelFactory.LevelCount - 1);
 
             StopAllCoroutines();
+            ClearTransientFx();
+
+            screenFlashAlpha = 0f;
+            screenFlashVersion++;
+            cameraShakeVersion++;
+
+            if (boardCamera != null)
+            {
+                boardCamera.transform.position =
+                    new Vector3(
+                        0f,
+                        BoardVerticalOffset,
+                        -10f);
+            }
+
             inputLocked = false;
             pointerArmed = false;
             transientBanner = string.Empty;
@@ -2746,6 +2767,9 @@ namespace XMatch.Puzzle
                 new GameObject(
                     "FX_" + effect);
 
+            RegisterTransientFx(
+                effectObject);
+
             effectObject.transform.SetParent(
                 transform,
                 worldPositionStays: true);
@@ -2832,7 +2856,8 @@ namespace XMatch.Puzzle
                 yield return null;
             }
 
-            Destroy(effectObject);
+            DestroyTransientFx(
+                effectObject);
         }
 
         private void SpawnSparkBurst(
@@ -2883,6 +2908,9 @@ namespace XMatch.Puzzle
             {
                 var sparkle =
                     new GameObject("FX_Spark");
+
+                RegisterTransientFx(
+                    sparkle);
 
                 sparkle.transform.SetParent(
                     transform,
@@ -3006,7 +3034,87 @@ namespace XMatch.Puzzle
             {
                 if (objects[i] != null)
                 {
-                    Destroy(objects[i]);
+                    DestroyTransientFx(
+                        objects[i]);
+                }
+            }
+        }
+
+        private void RegisterTransientFx(
+            GameObject effectObject)
+        {
+            if (effectObject == null)
+            {
+                return;
+            }
+
+            activeTransientFx.Add(
+                effectObject);
+        }
+
+        private void DestroyTransientFx(
+            GameObject effectObject)
+        {
+            if (effectObject == null)
+            {
+                return;
+            }
+
+            activeTransientFx.Remove(
+                effectObject);
+
+            Destroy(effectObject);
+        }
+
+        private void ClearTransientFx()
+        {
+            if (activeTransientFx.Count > 0)
+            {
+                var active =
+                    new List<GameObject>(
+                        activeTransientFx);
+
+                activeTransientFx.Clear();
+
+                for (int i = 0;
+                     i < active.Count;
+                     i++)
+                {
+                    if (active[i] != null)
+                    {
+                        Destroy(
+                            active[i]);
+                    }
+                }
+            }
+
+            var orphaned =
+                new List<GameObject>();
+
+            for (int i = 0;
+                 i < transform.childCount;
+                 i++)
+            {
+                Transform child =
+                    transform.GetChild(i);
+
+                if (child != null &&
+                    child.name.StartsWith(
+                        "FX_"))
+                {
+                    orphaned.Add(
+                        child.gameObject);
+                }
+            }
+
+            for (int i = 0;
+                 i < orphaned.Count;
+                 i++)
+            {
+                if (orphaned[i] != null)
+                {
+                    Destroy(
+                        orphaned[i]);
                 }
             }
         }
@@ -4205,14 +4313,19 @@ namespace XMatch.Puzzle
             string label,
             Rect rect)
         {
+            bool isSelected =
+                selectedBooster ==
+                booster;
+
             Sprite icon =
                 XMatchArtLibrary
                     .GetBoosterSprite(
-                        booster);
+                        booster,
+                        isSelected);
 
             string displayLabel =
-                selectedBooster == booster
-                    ? "• " + label
+                isSelected
+                    ? "◆ " + label
                     : label;
 
             GUIContent content =

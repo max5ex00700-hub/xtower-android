@@ -25,6 +25,9 @@ namespace XMatch.Puzzle
         private const int Columns = 5;
         private const int Rows = 2;
         private const int BoosterSize = 96;
+        private const int BoosterAssetCellSize = 64;
+        private const int BoosterAssetColumns = 6;
+        private const int BoosterAssetRows = 2;
 
         private static readonly Dictionary<int, Sprite>
             tileSprites =
@@ -34,12 +37,13 @@ namespace XMatch.Puzzle
             vfxSprites =
                 new Dictionary<int, Sprite>();
 
-        private static readonly Dictionary<BoosterKind, Sprite>
+        private static readonly Dictionary<int, Sprite>
             boosterSprites =
-                new Dictionary<BoosterKind, Sprite>();
+                new Dictionary<int, Sprite>();
 
         private static Texture2D tilesAtlas;
         private static Texture2D vfxAtlas;
+        private static Texture2D boosterAtlas;
         private static Sprite backgroundSprite;
         private static Texture2D resultPanelTexture;
         private static Texture2D primaryButtonTexture;
@@ -158,23 +162,59 @@ namespace XMatch.Puzzle
         }
 
         public static Sprite GetBoosterSprite(
-            BoosterKind booster)
+            BoosterKind booster,
+            bool selected = false)
         {
-            Sprite sprite;
-
-            if (boosterSprites.TryGetValue(
-                    booster,
-                    out sprite))
+            try
             {
+                EnsureAtlases();
+
+                int column =
+                    BoosterAtlasColumn(
+                        booster);
+
+                int cacheKey =
+                    (column * 2) +
+                    (selected ? 1 : 0);
+
+                Sprite sprite;
+
+                if (boosterSprites.TryGetValue(
+                        cacheKey,
+                        out sprite))
+                {
+                    return sprite;
+                }
+
+                if (boosterAtlas != null &&
+                    column >= 0)
+                {
+                    sprite =
+                        CreateBoosterAtlasSprite(
+                            boosterAtlas,
+                            column,
+                            selected);
+                }
+                else
+                {
+                    sprite =
+                        CreateBoosterSprite(
+                            booster);
+                }
+
+                boosterSprites[cacheKey] =
+                    sprite;
+
                 return sprite;
             }
+            catch (Exception exception)
+            {
+                Debug.LogException(exception);
 
-            sprite =
-                CreateBoosterSprite(
-                    booster);
-
-            boosterSprites[booster] = sprite;
-            return sprite;
+                return
+                    CreateBoosterSprite(
+                        booster);
+            }
         }
 
         public static Texture2D GetResultPanelTexture()
@@ -399,6 +439,11 @@ namespace XMatch.Puzzle
                 LoadTextureFromBytes(
                     "XMatch/Art/VfxAtlasBytes",
                     "XMatch_VfxAtlas_Runtime");
+
+            boosterAtlas =
+                LoadTextureFromBytes(
+                    "XMatch/Art/BoosterIconsAtlas64",
+                    "XMatch_BoosterAtlas_Runtime");
 
             if (tilesAtlas == null)
             {
@@ -698,6 +743,94 @@ namespace XMatch.Puzzle
                 texture.name +
                 "_" +
                 index;
+
+            return sprite;
+        }
+
+        private static int BoosterAtlasColumn(
+            BoosterKind booster)
+        {
+            switch (booster)
+            {
+                case BoosterKind.Hammer:
+                    return 0;
+                case BoosterKind.RowClear:
+                    return 1;
+                case BoosterKind.ColumnClear:
+                    return 2;
+                case BoosterKind.Shuffle:
+                    return 3;
+                case BoosterKind.GiftBox:
+                    return 4;
+                case BoosterKind.MagicWand:
+                    return 5;
+                default:
+                    return -1;
+            }
+        }
+
+        private static Sprite CreateBoosterAtlasSprite(
+            Texture2D atlas,
+            int column,
+            bool selected)
+        {
+            int startX =
+                column *
+                BoosterAssetCellSize;
+
+            int startY =
+                selected
+                    ? 0
+                    : BoosterAssetCellSize;
+
+            Color[] pixels =
+                atlas.GetPixels(
+                    startX,
+                    startY,
+                    BoosterAssetCellSize,
+                    BoosterAssetCellSize);
+
+            var texture =
+                new Texture2D(
+                    BoosterAssetCellSize,
+                    BoosterAssetCellSize,
+                    TextureFormat.RGBA32,
+                    false);
+
+            texture.name =
+                "XMatch_BoosterArt_" +
+                column +
+                (selected
+                    ? "_Selected"
+                    : "_Normal");
+
+            texture.filterMode =
+                FilterMode.Bilinear;
+
+            texture.wrapMode =
+                TextureWrapMode.Clamp;
+
+            texture.SetPixels(pixels);
+            texture.Apply();
+
+            Sprite sprite =
+                Sprite.Create(
+                    texture,
+                    new Rect(
+                        0f,
+                        0f,
+                        BoosterAssetCellSize,
+                        BoosterAssetCellSize),
+                    new Vector2(
+                        0.5f,
+                        0.5f),
+                    BoosterAssetCellSize,
+                    0,
+                    SpriteMeshType.FullRect);
+
+            sprite.name =
+                texture.name +
+                "_Sprite";
 
             return sprite;
         }
