@@ -457,8 +457,8 @@ namespace XMatch.Puzzle
                 return backgroundSprite;
             }
 
-            const int width = 256;
-            const int height = 512;
+            const int width = 360;
+            const int height = 640;
 
             var texture =
                 new Texture2D(
@@ -546,10 +546,17 @@ namespace XMatch.Puzzle
                 78,
                 20261006);
 
-            AddHotelLights(
+            AddHotelScene(
                 pixels,
                 width,
                 height);
+
+            AddBokeh(
+                pixels,
+                width,
+                height,
+                42,
+                202610061);
 
             texture.SetPixels(pixels);
             texture.Apply();
@@ -1865,10 +1872,28 @@ namespace XMatch.Puzzle
                     float distanceToBorder =
                         -edgeDistance;
 
-                    if (distanceToBorder < 2.4f)
+                    if (distanceToBorder < 2.2f)
                     {
                         pixels[index] =
-                            border;
+                            Color.Lerp(
+                                border,
+                                Color.white,
+                                0.20f);
+
+                        continue;
+                    }
+
+                    if (distanceToBorder < 5.0f)
+                    {
+                        pixels[index] =
+                            Color.Lerp(
+                                border,
+                                new Color(
+                                    0.32f,
+                                    0.18f,
+                                    0.08f,
+                                    1f),
+                                0.48f);
 
                         continue;
                     }
@@ -1959,126 +1984,683 @@ namespace XMatch.Puzzle
                 radius;
         }
 
-        private static void AddHotelLights(
+        private static void AddHotelScene(
             Color[] pixels,
             int width,
             int height)
         {
+            Color deepNavy =
+                new Color(
+                    0.035f,
+                    0.045f,
+                    0.13f,
+                    1f);
+
+            Color violet =
+                new Color(
+                    0.15f,
+                    0.075f,
+                    0.22f,
+                    1f);
+
+            Color gold =
+                new Color(
+                    0.95f,
+                    0.67f,
+                    0.25f,
+                    1f);
+
             Color warm =
                 new Color(
                     1f,
-                    0.70f,
-                    0.27f,
+                    0.55f,
+                    0.12f,
                     1f);
 
-            int[] xs =
+            Color moon =
+                new Color(
+                    0.68f,
+                    0.79f,
+                    1f,
+                    0.78f);
+
+            // Moon and cool halo.
+            BlendDisk(
+                pixels,
+                width,
+                height,
+                width * 0.50f,
+                height * 0.78f,
+                width * 0.16f,
+                new Color(
+                    0.30f,
+                    0.42f,
+                    0.95f,
+                    0.11f));
+
+            BlendDisk(
+                pixels,
+                width,
+                height,
+                width * 0.50f,
+                height * 0.79f,
+                width * 0.070f,
+                moon);
+
+            // Distant castle.
+            int castleBase =
+                Mathf.RoundToInt(
+                    height * 0.45f);
+
+            int castleTop =
+                Mathf.RoundToInt(
+                    height * 0.67f);
+
+            FillRect(
+                pixels,
+                width,
+                height,
+                Mathf.RoundToInt(
+                    width * 0.29f),
+                castleBase,
+                Mathf.RoundToInt(
+                    width * 0.42f),
+                castleTop -
+                castleBase,
+                deepNavy);
+
+            FillRect(
+                pixels,
+                width,
+                height,
+                Mathf.RoundToInt(
+                    width * 0.41f),
+                castleTop,
+                Mathf.RoundToInt(
+                    width * 0.18f),
+                Mathf.RoundToInt(
+                    height * 0.075f),
+                deepNavy);
+
+            DrawTriangle(
+                pixels,
+                width,
+                height,
+                Mathf.RoundToInt(
+                    width * 0.50f),
+                Mathf.RoundToInt(
+                    height * 0.82f),
+                Mathf.RoundToInt(
+                    width * 0.12f),
+                Mathf.RoundToInt(
+                    height * 0.09f),
+                deepNavy);
+
+            int leftTowerX =
+                Mathf.RoundToInt(
+                    width * 0.24f);
+
+            int rightTowerX =
+                Mathf.RoundToInt(
+                    width * 0.70f);
+
+            FillRect(
+                pixels,
+                width,
+                height,
+                leftTowerX,
+                Mathf.RoundToInt(
+                    height * 0.48f),
+                Mathf.RoundToInt(
+                    width * 0.12f),
+                Mathf.RoundToInt(
+                    height * 0.19f),
+                deepNavy);
+
+            FillRect(
+                pixels,
+                width,
+                height,
+                rightTowerX,
+                Mathf.RoundToInt(
+                    height * 0.48f),
+                Mathf.RoundToInt(
+                    width * 0.12f),
+                Mathf.RoundToInt(
+                    height * 0.19f),
+                deepNavy);
+
+            DrawTriangle(
+                pixels,
+                width,
+                height,
+                leftTowerX +
+                Mathf.RoundToInt(
+                    width * 0.06f),
+                Mathf.RoundToInt(
+                    height * 0.76f),
+                Mathf.RoundToInt(
+                    width * 0.085f),
+                Mathf.RoundToInt(
+                    height * 0.09f),
+                deepNavy);
+
+            DrawTriangle(
+                pixels,
+                width,
+                height,
+                rightTowerX +
+                Mathf.RoundToInt(
+                    width * 0.06f),
+                Mathf.RoundToInt(
+                    height * 0.76f),
+                Mathf.RoundToInt(
+                    width * 0.085f),
+                Mathf.RoundToInt(
+                    height * 0.09f),
+                deepNavy);
+
+            // Warm castle windows.
+            int[] windowXs =
             {
-                width / 7,
-                width * 6 / 7
+                Mathf.RoundToInt(
+                    width * 0.36f),
+                Mathf.RoundToInt(
+                    width * 0.46f),
+                Mathf.RoundToInt(
+                    width * 0.54f),
+                Mathf.RoundToInt(
+                    width * 0.64f)
             };
 
             for (int i = 0;
-                 i < xs.Length;
+                 i < windowXs.Length;
                  i++)
             {
-                int cx = xs[i];
-
-                int lampY =
-                    height * 68 / 100;
-
-                for (int y =
-                         lampY - 42;
-                     y <= lampY + 42;
-                     y++)
+                for (int row = 0;
+                     row < 2;
+                     row++)
                 {
-                    if (y < 0 ||
-                        y >= height)
+                    int y =
+                        Mathf.RoundToInt(
+                            height *
+                            (0.51f +
+                             (row * 0.075f)));
+
+                    BlendDisk(
+                        pixels,
+                        width,
+                        height,
+                        windowXs[i],
+                        y,
+                        width * 0.025f,
+                        new Color(
+                            warm.r,
+                            warm.g,
+                            warm.b,
+                            0.22f));
+
+                    FillRect(
+                        pixels,
+                        width,
+                        height,
+                        windowXs[i] - 3,
+                        y - 7,
+                        6,
+                        14,
+                        gold);
+                }
+            }
+
+            // Side balcony columns.
+            int columnWidth =
+                Mathf.Max(
+                    10,
+                    Mathf.RoundToInt(
+                        width * 0.065f));
+
+            int columnY =
+                Mathf.RoundToInt(
+                    height * 0.20f);
+
+            int columnHeight =
+                Mathf.RoundToInt(
+                    height * 0.58f);
+
+            int leftColumn =
+                Mathf.RoundToInt(
+                    width * 0.035f);
+
+            int rightColumn =
+                width -
+                leftColumn -
+                columnWidth;
+
+            FillRect(
+                pixels,
+                width,
+                height,
+                leftColumn,
+                columnY,
+                columnWidth,
+                columnHeight,
+                new Color(
+                    0.24f,
+                    0.12f,
+                    0.26f,
+                    0.90f));
+
+            FillRect(
+                pixels,
+                width,
+                height,
+                rightColumn,
+                columnY,
+                columnWidth,
+                columnHeight,
+                new Color(
+                    0.24f,
+                    0.12f,
+                    0.26f,
+                    0.90f));
+
+            DrawLine(
+                pixels,
+                width,
+                height,
+                leftColumn,
+                columnY,
+                leftColumn,
+                columnY + columnHeight,
+                2.0f,
+                new Color(
+                    0.76f,
+                    0.50f,
+                    0.24f,
+                    0.65f));
+
+            DrawLine(
+                pixels,
+                width,
+                height,
+                rightColumn +
+                columnWidth,
+                columnY,
+                rightColumn +
+                columnWidth,
+                columnY + columnHeight,
+                2.0f,
+                new Color(
+                    0.76f,
+                    0.50f,
+                    0.24f,
+                    0.65f));
+
+            // Two prominent lanterns.
+            int lampY =
+                Mathf.RoundToInt(
+                    height * 0.64f);
+
+            int[] lampXs =
+            {
+                Mathf.RoundToInt(
+                    width * 0.14f),
+                Mathf.RoundToInt(
+                    width * 0.86f)
+            };
+
+            for (int i = 0;
+                 i < lampXs.Length;
+                 i++)
+            {
+                int x =
+                    lampXs[i];
+
+                BlendDisk(
+                    pixels,
+                    width,
+                    height,
+                    x,
+                    lampY,
+                    width * 0.11f,
+                    new Color(
+                        1f,
+                        0.43f,
+                        0.06f,
+                        0.13f));
+
+                BlendDisk(
+                    pixels,
+                    width,
+                    height,
+                    x,
+                    lampY,
+                    width * 0.055f,
+                    new Color(
+                        1f,
+                        0.67f,
+                        0.16f,
+                        0.31f));
+
+                DrawLine(
+                    pixels,
+                    width,
+                    height,
+                    x,
+                    lampY +
+                    Mathf.RoundToInt(
+                        height * 0.08f),
+                    x,
+                    lampY +
+                    Mathf.RoundToInt(
+                        height * 0.14f),
+                    2.0f,
+                    gold);
+
+                FillRect(
+                    pixels,
+                    width,
+                    height,
+                    x -
+                    Mathf.RoundToInt(
+                        width * 0.035f),
+                    lampY -
+                    Mathf.RoundToInt(
+                        height * 0.035f),
+                    Mathf.RoundToInt(
+                        width * 0.070f),
+                    Mathf.RoundToInt(
+                        height * 0.070f),
+                    new Color(
+                        0.40f,
+                        0.18f,
+                        0.12f,
+                        0.92f));
+
+                FillRect(
+                    pixels,
+                    width,
+                    height,
+                    x -
+                    Mathf.RoundToInt(
+                        width * 0.024f),
+                    lampY -
+                    Mathf.RoundToInt(
+                        height * 0.025f),
+                    Mathf.RoundToInt(
+                        width * 0.048f),
+                    Mathf.RoundToInt(
+                        height * 0.050f),
+                    new Color(
+                        1f,
+                        0.61f,
+                        0.18f,
+                        0.92f));
+            }
+
+            // Rose clusters on the edges.
+            for (int side = 0;
+                 side < 2;
+                 side++)
+            {
+                float x =
+                    side == 0
+                        ? width * 0.035f
+                        : width * 0.965f;
+
+                for (int i = 0;
+                     i < 7;
+                     i++)
+                {
+                    float y =
+                        height *
+                        (0.18f +
+                         (i * 0.10f));
+
+                    BlendDisk(
+                        pixels,
+                        width,
+                        height,
+                        x,
+                        y,
+                        width * 0.045f,
+                        new Color(
+                            0.45f,
+                            0.015f,
+                            0.15f,
+                            0.75f));
+
+                    BlendDisk(
+                        pixels,
+                        width,
+                        height,
+                        x,
+                        y,
+                        width * 0.023f,
+                        new Color(
+                            0.90f,
+                            0.06f,
+                            0.30f,
+                            0.85f));
+                }
+            }
+
+            // Terrace floor at the bottom.
+            int floorTop =
+                Mathf.RoundToInt(
+                    height * 0.17f);
+
+            FillRect(
+                pixels,
+                width,
+                height,
+                0,
+                0,
+                width,
+                floorTop,
+                new Color(
+                    0.055f,
+                    0.065f,
+                    0.16f,
+                    1f));
+
+            for (int row = 1;
+                 row < 5;
+                 row++)
+            {
+                int y =
+                    floorTop *
+                    row /
+                    5;
+
+                DrawLine(
+                    pixels,
+                    width,
+                    height,
+                    0,
+                    y,
+                    width - 1,
+                    y,
+                    1.0f,
+                    new Color(
+                        0.30f,
+                        0.24f,
+                        0.40f,
+                        0.45f));
+            }
+
+            for (int x = 0;
+                 x < width;
+                 x += Mathf.Max(
+                     18,
+                     width / 8))
+            {
+                DrawLine(
+                    pixels,
+                    width,
+                    height,
+                    x,
+                    0,
+                    width / 2,
+                    floorTop,
+                    1.0f,
+                    new Color(
+                        0.30f,
+                        0.24f,
+                        0.40f,
+                        0.30f));
+            }
+
+            // Subtle violet atmospheric haze.
+            BlendDisk(
+                pixels,
+                width,
+                height,
+                width * 0.50f,
+                height * 0.44f,
+                width * 0.40f,
+                new Color(
+                    violet.r,
+                    violet.g,
+                    violet.b,
+                    0.10f));
+        }
+
+        private static void BlendDisk(
+            Color[] pixels,
+            int width,
+            int height,
+            float cx,
+            float cy,
+            float radius,
+            Color color)
+        {
+            int minX =
+                Mathf.Max(
+                    0,
+                    Mathf.FloorToInt(
+                        cx - radius));
+
+            int maxX =
+                Mathf.Min(
+                    width - 1,
+                    Mathf.CeilToInt(
+                        cx + radius));
+
+            int minY =
+                Mathf.Max(
+                    0,
+                    Mathf.FloorToInt(
+                        cy - radius));
+
+            int maxY =
+                Mathf.Min(
+                    height - 1,
+                    Mathf.CeilToInt(
+                        cy + radius));
+
+            for (int y = minY;
+                 y <= maxY;
+                 y++)
+            {
+                for (int x = minX;
+                     x <= maxX;
+                     x++)
+                {
+                    float dx =
+                        x - cx;
+
+                    float dy =
+                        y - cy;
+
+                    float distance =
+                        Mathf.Sqrt(
+                            (dx * dx) +
+                            (dy * dy));
+
+                    if (distance >
+                        radius)
                     {
                         continue;
                     }
 
-                    for (int x =
-                             cx - 24;
-                         x <= cx + 24;
-                         x++)
-                    {
-                        if (x < 0 ||
-                            x >= width)
-                        {
-                            continue;
-                        }
-
-                        float dx =
-                            (x - cx) /
-                            24f;
-
-                        float dy =
-                            (y - lampY) /
-                            42f;
-
-                        float distance =
-                            Mathf.Sqrt(
-                                (dx * dx) +
-                                (dy * dy));
-
-                        if (distance >= 1f)
-                        {
-                            continue;
-                        }
-
-                        float alpha =
-                            (1f - distance) *
-                            0.22f;
-
-                        int index =
-                            (y * width) + x;
-
-                        pixels[index] =
-                            Color.Lerp(
-                                pixels[index],
-                                warm,
-                                alpha);
-                    }
-                }
-            }
-
-            Color cityLight =
-                new Color(
-                    0.55f,
-                    0.62f,
-                    1f,
-                    1f);
-
-            for (int row = 0;
-                 row < 4;
-                 row++)
-            {
-                int y =
-                    height *
-                    (52 + (row * 4)) /
-                    100;
-
-                for (int col = 0;
-                     col < 9;
-                     col++)
-                {
-                    int x =
-                        width *
-                        (8 + (col * 10)) /
-                        100;
+                    float alpha =
+                        color.a *
+                        Mathf.Pow(
+                            1f -
+                            (distance /
+                             radius),
+                            1.8f);
 
                     int index =
                         (y * width) + x;
 
-                    if (index >= 0 &&
-                        index < pixels.Length)
-                    {
-                        pixels[index] =
-                            Color.Lerp(
-                                pixels[index],
-                                cityLight,
-                                0.42f);
-                    }
+                    pixels[index] =
+                        Color.Lerp(
+                            pixels[index],
+                            new Color(
+                                color.r,
+                                color.g,
+                                color.b,
+                                1f),
+                            alpha);
+                }
+            }
+        }
+
+        private static void DrawTriangle(
+            Color[] pixels,
+            int width,
+            int height,
+            int centerX,
+            int topY,
+            int halfWidth,
+            int triangleHeight,
+            Color color)
+        {
+            int bottomY =
+                topY -
+                triangleHeight;
+
+            for (int y =
+                     Mathf.Max(
+                         0,
+                         bottomY);
+                 y <=
+                 Mathf.Min(
+                     height - 1,
+                     topY);
+                 y++)
+            {
+                float t =
+                    triangleHeight <= 0
+                        ? 1f
+                        : (y - bottomY) /
+                          (float)triangleHeight;
+
+                int rowHalfWidth =
+                    Mathf.RoundToInt(
+                        halfWidth * t);
+
+                int startX =
+                    Mathf.Max(
+                        0,
+                        centerX -
+                        rowHalfWidth);
+
+                int endX =
+                    Mathf.Min(
+                        width - 1,
+                        centerX +
+                        rowHalfWidth);
+
+                for (int x = startX;
+                     x <= endX;
+                     x++)
+                {
+                    pixels[
+                        (y * width) + x] =
+                        color;
                 }
             }
         }

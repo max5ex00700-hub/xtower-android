@@ -219,11 +219,11 @@ namespace XMatch.Puzzle
             boardCamera.backgroundColor =
                 Color.Lerp(
                     new Color(
-                        0.030f,
-                        0.035f,
-                        0.045f),
+                        0.050f,
+                        0.060f,
+                        0.14f),
                     accent,
-                    0.045f);
+                    0.10f);
 
             if (backgroundRenderer != null)
             {
@@ -231,7 +231,7 @@ namespace XMatch.Puzzle
                     Color.Lerp(
                         Color.white,
                         accent,
-                        0.035f);
+                        0.020f);
             }
         }
 
@@ -259,6 +259,9 @@ namespace XMatch.Puzzle
                 boardFrame.sprite =
                     XMatchArtLibrary
                         .GetBoardFrameSprite();
+
+                boardFrame.drawMode =
+                    SpriteDrawMode.Sliced;
 
                 boardFrame.sortingOrder =
                     -12;
@@ -291,10 +294,12 @@ namespace XMatch.Puzzle
             }
 
             boardFrame.transform.localScale =
-                new Vector3(
-                    session.Board.Width + 0.42f,
-                    session.Board.Height + 0.42f,
-                    1f);
+                Vector3.one;
+
+            boardFrame.size =
+                new Vector2(
+                    session.Board.Width + 0.36f,
+                    session.Board.Height + 0.36f);
 
             boardFrame.color =
                 Color.white;
