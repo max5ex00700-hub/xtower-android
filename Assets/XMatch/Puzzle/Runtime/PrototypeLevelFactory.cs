@@ -252,20 +252,26 @@ namespace XMatch.Puzzle
                     return new LevelSpec(
                         8,
                         9,
-                        25,
+                        28,
                         20261020,
                         910110,
                         new[]
                         {
                             GoalDefinition.CollectTile(
                                 TileKind.Heart,
-                                15),
+                                10),
                             GoalDefinition.CollectTile(
                                 TileKind.Rose,
-                                15),
+                                10),
                             GoalDefinition.CollectTile(
                                 TileKind.Diamond,
-                                10)
+                                8),
+                            GoalDefinition.CollectTile(
+                                TileKind.Perfume,
+                                8),
+                            GoalDefinition.CollectTile(
+                                TileKind.Lips,
+                                8)
                         });
 
                 default:
