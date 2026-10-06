@@ -876,6 +876,7 @@ namespace XMatch.Puzzle
             PlayResultFeedback(session.Status);
 
             EnsurePresentationMatchesBoard();
+            ClearTransientFx();
             inputLocked = false;
         }
 
@@ -1022,6 +1023,7 @@ namespace XMatch.Puzzle
             PlayResultFeedback(turn.Status);
 
             EnsurePresentationMatchesBoard();
+            ClearTransientFx();
             inputLocked = false;
         }
 
@@ -1155,6 +1157,7 @@ namespace XMatch.Puzzle
             PlayResultFeedback(turn.Status);
 
             EnsurePresentationMatchesBoard();
+            ClearTransientFx();
             inputLocked = false;
         }
 
@@ -3063,6 +3066,7 @@ namespace XMatch.Puzzle
             activeTransientFx.Remove(
                 effectObject);
 
+            effectObject.SetActive(false);
             Destroy(effectObject);
         }
 
@@ -3082,6 +3086,7 @@ namespace XMatch.Puzzle
                 {
                     if (active[i] != null)
                     {
+                        active[i].SetActive(false);
                         Destroy(
                             active[i]);
                     }
@@ -3113,6 +3118,7 @@ namespace XMatch.Puzzle
             {
                 if (orphaned[i] != null)
                 {
+                    orphaned[i].SetActive(false);
                     Destroy(
                         orphaned[i]);
                 }
