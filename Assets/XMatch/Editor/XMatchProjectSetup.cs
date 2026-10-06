@@ -1,4 +1,5 @@
 using UnityEditor;
+using UnityEditor.Build;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -26,6 +27,9 @@ namespace XMatch.Editor
                 "X MATCH";
             PlayerSettings.defaultInterfaceOrientation =
                 UIOrientation.Portrait;
+            PlayerSettings.SetApplicationIdentifier(
+                NamedBuildTarget.Android,
+                "com.max77.xmatch");
 
             if (!AssetDatabase.IsValidFolder(
                     SceneFolder))
