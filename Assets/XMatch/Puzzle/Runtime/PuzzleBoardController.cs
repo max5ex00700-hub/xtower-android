@@ -3909,51 +3909,84 @@ namespace XMatch.Puzzle
         private void DrawGoalSummary(
             Rect rect)
         {
+            int visibleGoalCount =
+                Mathf.Clamp(
+                    session.Goals.Count,
+                    1,
+                    5);
+
+            float titleHeight =
+                Mathf.Clamp(
+                    rect.height * 0.28f,
+                    28f,
+                    48f);
+
             GUIStyle stageStyle =
                 new GUIStyle(goalStyle);
 
             stageStyle.fontStyle =
                 FontStyle.Bold;
 
+            stageStyle.alignment =
+                TextAnchor.MiddleLeft;
+
             stageStyle.fontSize =
                 Mathf.RoundToInt(
                     Mathf.Clamp(
-                        Screen.width * 0.038f,
+                        Screen.width * 0.036f,
                         16f,
-                        26f));
+                        25f));
 
             stageStyle.normal.textColor =
                 new Color(
-                    0.86f,
-                    0.80f,
+                    0.88f,
+                    0.82f,
                     0.70f);
-
-            float stageWidth =
-                rect.width * 0.28f;
 
             GUI.Label(
                 new Rect(
-                    rect.x + 4f,
+                    rect.x + 8f,
                     rect.y,
-                    stageWidth - 8f,
-                    rect.height),
+                    rect.width - 16f,
+                    titleHeight),
                 PrototypeLevelFactory.GetTitle(
                     currentLevelIndex),
                 stageStyle);
 
-            int count =
-                Mathf.Max(
-                    1,
-                    session.Goals.Count);
+            float goalsY =
+                rect.y +
+                titleHeight +
+                2f;
 
-            float goalsWidth =
-                rect.width - stageWidth;
+            float goalsHeight =
+                rect.height -
+                titleHeight -
+                2f;
+
+            float gap =
+                Mathf.Clamp(
+                    rect.width * 0.008f,
+                    3f,
+                    8f);
+
+            float totalGap =
+                gap *
+                (visibleGoalCount - 1);
 
             float itemWidth =
-                goalsWidth / count;
+                (rect.width - totalGap) /
+                visibleGoalCount;
+
+            float densityScale =
+                visibleGoalCount <= 3
+                    ? 1f
+                    : visibleGoalCount == 4
+                        ? 0.88f
+                        : 0.78f;
 
             for (int i = 0;
-                 i < session.Goals.Count;
+                 i < session.Goals.Count &&
+                 i < 5;
                  i++)
             {
                 GoalProgress goal =
@@ -3962,28 +3995,23 @@ namespace XMatch.Puzzle
                 Rect item =
                     new Rect(
                         rect.x +
-                        stageWidth +
-                        (itemWidth * i),
-                        rect.y,
+                        ((itemWidth + gap) * i),
+                        goalsY,
                         itemWidth,
-                        rect.height);
+                        goalsHeight);
 
                 Color oldBackground =
                     GUI.backgroundColor;
 
                 GUI.backgroundColor =
                     new Color(
-                        0.12f,
-                        0.11f,
-                        0.12f,
-                        0.92f);
+                        0.105f,
+                        0.10f,
+                        0.105f,
+                        0.96f);
 
                 GUI.Box(
-                    new Rect(
-                        item.x + 2f,
-                        item.y + 2f,
-                        item.width - 4f,
-                        item.height - 4f),
+                    item,
                     string.Empty);
 
                 GUI.backgroundColor =
@@ -3997,17 +4025,24 @@ namespace XMatch.Puzzle
 
                 float iconSize =
                     Mathf.Min(
-                        item.height * 0.70f,
-                        item.width * 0.48f);
+                        item.height * 0.58f,
+                        item.width * 0.62f) *
+                    densityScale;
+
+                float iconY =
+                    item.y +
+                    Mathf.Max(
+                        2f,
+                        item.height * 0.04f);
 
                 if (icon != null)
                 {
                     GUI.DrawTexture(
                         new Rect(
-                            item.x + 7f,
-                            item.y +
-                            ((item.height -
+                            item.x +
+                            ((item.width -
                               iconSize) * 0.5f),
+                            iconY,
                             iconSize,
                             iconSize),
                         icon.texture,
@@ -4021,32 +4056,43 @@ namespace XMatch.Puzzle
                 countStyle.fontStyle =
                     FontStyle.Bold;
 
-                countStyle.fontSize =
-                    Mathf.RoundToInt(
-                        Mathf.Clamp(
-                            Screen.width * 0.040f,
-                            17f,
-                            28f));
-
                 countStyle.alignment =
                     TextAnchor.MiddleCenter;
 
+                float baseFont =
+                    visibleGoalCount <= 3
+                        ? Screen.width * 0.043f
+                        : visibleGoalCount == 4
+                            ? Screen.width * 0.036f
+                            : Screen.width * 0.032f;
+
+                countStyle.fontSize =
+                    Mathf.RoundToInt(
+                        Mathf.Clamp(
+                            baseFont,
+                            14f,
+                            28f));
+
                 countStyle.normal.textColor =
                     new Color(
-                        0.92f,
-                        0.88f,
-                        0.78f);
+                        0.94f,
+                        0.90f,
+                        0.80f);
+
+                float countY =
+                    iconY +
+                    iconSize -
+                    2f;
 
                 GUI.Label(
                     new Rect(
-                        item.x +
-                        iconSize +
-                        8f,
-                        item.y,
-                        item.width -
-                        iconSize -
-                        12f,
-                        item.height),
+                        item.x + 2f,
+                        countY,
+                        item.width - 4f,
+                        Mathf.Max(
+                            24f,
+                            item.yMax -
+                            countY)),
                     goal.CurrentCount +
                     "/" +
                     goal.Definition.TargetCount,
