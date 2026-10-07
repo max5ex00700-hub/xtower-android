@@ -457,6 +457,43 @@ namespace XMatch.Puzzle
                 return backgroundSprite;
             }
 
+            TextAsset luxuryBackground =
+                Resources.Load<TextAsset>(
+                    "XMatch/Art/LuxuryBackgroundBase64");
+
+            if (luxuryBackground != null &&
+                !string.IsNullOrEmpty(
+                    luxuryBackground.text))
+            {
+                Texture2D loadedTexture =
+                    LoadTextureFromBase64(
+                        luxuryBackground.text.Trim(),
+                        "XMatch_LuxuryBackground_Runtime");
+
+                if (loadedTexture != null)
+                {
+                    backgroundSprite =
+                        Sprite.Create(
+                            loadedTexture,
+                            new Rect(
+                                0f,
+                                0f,
+                                loadedTexture.width,
+                                loadedTexture.height),
+                            new Vector2(
+                                0.5f,
+                                0.5f),
+                            100f,
+                            0,
+                            SpriteMeshType.FullRect);
+
+                    backgroundSprite.name =
+                        "XMatch_LuxuryBackgroundSprite";
+
+                    return backgroundSprite;
+                }
+            }
+
             const int width = 360;
             const int height = 640;
 
