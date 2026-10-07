@@ -3687,11 +3687,33 @@ namespace XMatch.Puzzle
                     188f,
                     230f);
 
+            int topGoalCount =
+                Mathf.Clamp(
+                    session.Goals.Count,
+                    1,
+                    5);
+
+            float leftRatio =
+                topGoalCount >= 5
+                    ? 0.215f
+                    : topGoalCount == 4
+                        ? 0.245f
+                        : 0.285f;
+
+            float rightRatio =
+                topGoalCount >= 5
+                    ? 0.145f
+                    : topGoalCount == 4
+                        ? 0.165f
+                        : 0.185f;
+
             float leftWidth =
-                totalWidth * 0.285f;
+                totalWidth *
+                leftRatio;
 
             float rightWidth =
-                totalWidth * 0.185f;
+                totalWidth *
+                rightRatio;
 
             float missionWidth =
                 totalWidth -

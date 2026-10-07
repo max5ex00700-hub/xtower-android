@@ -830,7 +830,12 @@ namespace XMatch.Puzzle
                         0.5f),
                     size,
                     0,
-                    SpriteMeshType.FullRect);
+                    SpriteMeshType.FullRect,
+                    new Vector4(
+                        16f,
+                        16f,
+                        16f,
+                        16f));
 
             boardFrameSprite.name =
                 "XMatch_BoardGoldFrameSprite";
